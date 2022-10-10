@@ -1,0 +1,44 @@
+repos:
+
+# Removes output from Notebooks
+-  repo: https://github.com/kynan/nbstripout
+   rev: 0.6.1
+   hooks:
+   -  id: nbstripout    
+      name: nbstripout
+      description: 'nbstripout: strip output from Jupyter and IPython notebooks'
+      entry: nbstripout
+      language: python
+      types: [jupyter]
+
+# Checks for high-entrooy strings likely to be passwords
+# Not working well in VS Code because it adds a hash
+# to notebook that gets flagged. Requires more configuration. 
+# -  repo: https://github.com/Yelp/detect-secrets
+#    rev: v1.3.0
+#    hooks:
+#    -   id: detect-secrets
+
+## Alternative pre-commit hooks:
+
+# Requires Cargo installed
+# -   repo: https://github.com/sirwart/ripsecrets
+#     rev: v0.1.5
+#     hooks:
+#     -   id: ripsecrets
+
+## Requires Go lang installed
+# -   repo: https://github.com/zricethezav/gitleaks
+#     rev: v8.13.0
+#     hooks:
+#     -   id: gitleaks
+
+## Requires Git Guardian API key (free version available)
+# -   repo: https://github.com/gitguardian/gg-shield
+#     rev: v1.13.3
+#     hooks:
+#     -   id: ggshield
+
+
+
+    
