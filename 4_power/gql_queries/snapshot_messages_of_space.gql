@@ -1,0 +1,20 @@
+query ($first: Int = 1000, $skip: Int = 0, $space: String!) {
+    messages (
+        first: $first 
+        skip: $skip
+        where: {
+            space: $space
+        } 
+    ) {
+        mci
+        id
+        ipfs
+        address
+        version
+        timestamp
+        space
+        type
+        sig
+        receipt
+    }
+}

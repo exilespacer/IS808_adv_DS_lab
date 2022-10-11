@@ -1,0 +1,65 @@
+query ($first: Int!, $skip: Int!) {
+    spaces(
+      first: $first,
+      skip: $skip,
+      orderBy: "created",
+      orderDirection: asc
+    ) 
+    {
+      id
+      name
+      private
+      about
+      avatar
+      terms
+      location
+      website
+      twitter
+      github
+      email
+      network
+      symbol
+      skin
+      domain
+      strategies {
+        name
+        params
+        network
+      }
+      admins
+      members
+      filters {
+        minScore
+        onlyMembers
+      }
+      plugins
+      voting {
+        delay
+        period
+        type
+        quorum
+        blind
+        hideAbstain
+        privacy
+      }
+      categories
+      validation {
+        name
+        params
+        network
+      }
+      treasuries {
+        name
+        address
+        network
+      }
+      followersCount
+      proposalsCount
+      parent {
+        id
+      }
+      children {
+        id
+      }
+    }
+}

@@ -1,0 +1,27 @@
+query ($first: Int = 1000, $skip: Int = 0, $space: String!) {
+    votes (
+        first: $first 
+        skip: $skip
+        where: {
+            space: $space
+        } 
+    ) {
+      id
+      ipfs
+      voter
+      created
+      space {
+        id
+      }
+      proposal {
+        id
+      }
+      choice
+      metadata
+      reason
+      app
+      vp
+      vp_by_strategy
+      vp_state
+    }
+}
