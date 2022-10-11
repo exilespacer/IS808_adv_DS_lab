@@ -1,5 +1,8 @@
 # IS808_adv_DS_lab
 
+## Things we should agree upon
+- Use Jupyter notebooks or plain Python files?
+
 ## Pre-commit hooks
 
 I added pre-commit hooks that
