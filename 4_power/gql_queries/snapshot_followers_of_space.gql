@@ -1,0 +1,11 @@
+query ($first: Int = 1000, $skip: Int = 0, $space: String!) {
+    follows(
+        first: $first 
+        skip: $skip
+        where: {
+            space: $space
+        } 
+    ) {
+        follower
+    }
+}

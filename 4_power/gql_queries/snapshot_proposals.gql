@@ -1,0 +1,43 @@
+query ($first: Int!, $skip: Int!) {
+    proposals (
+      first: $first,
+      skip: $skip,
+      orderBy: "created",
+      orderDirection: asc
+    ) 
+    {
+      id
+      ipfs
+      author
+      created
+      space {
+        id
+      }
+      network
+      symbol
+      type
+      strategies {
+        name
+        network
+        params
+      }
+      plugins
+      title
+      body
+      discussion
+      choices
+      start
+      end
+      quorum
+      snapshot
+      state
+      link
+      app
+      scores
+      scores_by_strategy
+      scores_state
+      scores_total
+      scores_updated
+      votes
+    }
+  }
