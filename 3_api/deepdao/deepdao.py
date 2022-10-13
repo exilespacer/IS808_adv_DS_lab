@@ -44,5 +44,5 @@ params = {"orderBy": "votesCount"}
 res = api(query, params=params)
 
 # %%
-pd.DataFrame(res["data"])["address"].to_list()
+daomemberaddresses = pd.DataFrame(res["data"])["address"].to_list()
 # %%
