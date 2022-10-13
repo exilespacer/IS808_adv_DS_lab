@@ -32,6 +32,9 @@ Not feasible to address right now, because we will focus on the top X, which is 
     - Example without: https://opensea.io/collection/the-pavone
     - Example with: https://opensea.io/collection/cavemanlabs
         - https://etherscan.io/address/0x7018ec2181bb1c6e52adf0b4e8d679efecf2b8d1
+    - Explanation: https://opensea.io/blog/announcements/introducing-the-collection-manager/
+        - It's possible to create NFTs on OpenSea without a smart contract
+- Risk that we simply establish connections between active members of the crypto community
 
 
 # Preliminary data analysis and visualization
