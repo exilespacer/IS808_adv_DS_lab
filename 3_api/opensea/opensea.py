@@ -88,24 +88,24 @@ def opensea_collections_for_addresses(
     save_filename=None,
     clear_on_save=False,
     save_interval=10,
+    output_data=[],
 ):
     """
     Get the collections for a list of users.
     With delay to avoid API issues.
     """
 
-    _coll = []
     save_counter = 1
 
     def save_file():
 
-        nonlocal _coll
+        nonlocal output_data
 
-        if isinstance(_coll[0], pd.DataFrame):
-            out = pd.concat(_coll, axis=0)
+        if isinstance(output_data[0], pd.DataFrame):
+            out = pd.concat(output_data, axis=0)
             typ = "df"
         else:
-            out = deepcopy(_coll)
+            out = deepcopy(output_data)
             typ = "dict"
 
         method = save_filename.rsplit(".")[-1]
@@ -120,7 +120,7 @@ def opensea_collections_for_addresses(
 
             filename = save_filename.replace(f".{method}", f"_{sv}.{method}")
 
-            _coll = []
+            output_data = []
         else:
             filename = save_filename
 
@@ -142,7 +142,7 @@ def opensea_collections_for_addresses(
             )
         ):
             r = get_collections(addr)
-            _coll.append(r)
+            output_data.append(r)
 
             if save_filename is not None and idx % save_interval == 0 and idx > 0:
                 save_file()
@@ -152,10 +152,10 @@ def opensea_collections_for_addresses(
         print(f"Error {exc.__class__}")
         if save_filename is not None:
             save_file()
-    if isinstance(_coll[0], pd.DataFrame):
-        rval = pd.concat(_coll, axis=0)
+    if isinstance(output_data[0], pd.DataFrame):
+        rval = pd.concat(output_data, axis=0)
     else:
-        rval = _coll
+        rval = output_data
     if save_filename is not None:
         save_file()
     return rval

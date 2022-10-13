@@ -37,16 +37,19 @@ data_dir = projectfolder / "3_api/opensea/data/collections"
 save_filename = "collections.json"
 
 with open(data_dir / save_filename, "r") as f:
-    existing = set(a["requestedaddress"] for a in json.load(f))
+    output_data = json.load(f)
+
+existing = set(a["requestedaddress"] for a in output_data)
 
 todo = members - existing
 
 # %%
 r = opensea.opensea_collections_for_addresses(
-    members,
+    todo,
     data_dir=data_dir,
     save_filename=save_filename,
     save_interval=10,
+    output_data=output_data,
 )
 # %%
 
