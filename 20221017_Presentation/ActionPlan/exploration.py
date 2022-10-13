@@ -32,11 +32,22 @@ members = set(
     if item[:2] == "0x" and len(item) == 42
 )
 # %%
-# r = opensea.opensea_collections_for_addresses(list(members)[:5])
+
+data_dir = projectfolder / "3_api/opensea/data/collections"
+save_filename = "collections.json"
+
+with open(data_dir / save_filename, "r") as f:
+    existing = set(a["requestedaddress"] for a in json.load(f))
+
+todo = members - existing
+
+# %%
 r = opensea.opensea_collections_for_addresses(
     members,
-    data_dir=projectfolder / "3_api/opensea/data/collections",
-    save_filename="collections.pq",
+    data_dir=data_dir,
+    save_filename=save_filename,
     save_interval=10,
 )
+# %%
+
 # %%

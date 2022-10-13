@@ -54,7 +54,8 @@ def get_collections(address, limit=300):
         }
     )
 
-    rval = collections_to_dataframe(extracted)
+    rval = extracted
+    # rval = collections_to_dataframe(extracted)
 
     return rval
 
@@ -99,7 +100,13 @@ def opensea_collections_for_addresses(
     def save_file():
 
         nonlocal _coll
-        df = pd.concat(_coll, axis=0)
+
+        if isinstance(_coll[0], pd.DataFrame):
+            out = pd.concat(_coll, axis=0)
+            typ = "df"
+        else:
+            out = deepcopy(_coll)
+            typ = "dict"
 
         method = save_filename.rsplit(".")[-1]
 
@@ -116,10 +123,16 @@ def opensea_collections_for_addresses(
             _coll = []
         else:
             filename = save_filename
-        if method == "json":
-            df.to_json(data_dir / filename, orient="records")
+
+        if method == "json" and typ == "df":
+            out.to_json(data_dir / filename, orient="records")
+        elif method == "json" and typ == "dict":
+            with open(data_dir / filename, "w") as outfile:
+                json.dump(out, outfile)
         elif method in {"pq", "parquet"}:
-            df.to_parquet(data_dir / filename)
+            out.to_parquet(data_dir / filename)
+        else:
+            raise ValueError("Invalid filetype")
 
     try:
         for idx, addr in enumerate(
@@ -139,8 +152,10 @@ def opensea_collections_for_addresses(
         print(f"Error {exc.__class__}")
         if save_filename is not None:
             save_file()
-
-    rval = pd.concat(_coll, axis=0)
+    if isinstance(_coll[0], pd.DataFrame):
+        rval = pd.concat(_coll, axis=0)
+    else:
+        rval = _coll
     if save_filename is not None:
         save_file()
     return rval
@@ -226,8 +241,9 @@ if __name__ == "__main__":
     rdata = opensea_collections_for_addresses(
         daomemberaddresses[2:10],
         data_dir=folder,
-        save_filename="collections.pq",
+        save_filename="collections.json",
         save_interval=2,
+        clear_on_save=True,
     )
 
 
