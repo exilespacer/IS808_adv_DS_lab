@@ -35,6 +35,8 @@ Not feasible to address right now, because we will focus on the top X, which is 
     - Explanation: https://opensea.io/blog/announcements/introducing-the-collection-manager/
         - It's possible to create NFTs on OpenSea without a smart contract
 - Risk that we simply establish connections between active members of the crypto community
+- Some people seem to keep their NFTs in so-called vault accounts
+    - e.g. https://opensea.io/Khalissman-Vault
 
 
 # Preliminary data analysis and visualization

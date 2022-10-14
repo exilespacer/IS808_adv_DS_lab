@@ -3,6 +3,9 @@
 *.csv
 *.json
 
+!collections.json
+!combined_members.json
+
 package-lock.json
 node_modules/
 *~
