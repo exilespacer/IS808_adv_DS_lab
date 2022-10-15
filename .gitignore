@@ -5,6 +5,7 @@
 
 !collections.json
 !combined_members.json
+!network_df.csv
 
 package-lock.json
 node_modules/

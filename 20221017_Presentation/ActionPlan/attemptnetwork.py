@@ -69,4 +69,8 @@ netw_df = pd.merge(
     validate="m:m",
 ).drop("requestedaddress", axis=1)
 # %%
-netw_df
+netw_df.to_csv(
+    projectfolder / "20221017_Presentation/ActionPlan" / "network_df.csv", index=False
+)
+
+# %%
