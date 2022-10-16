@@ -23,6 +23,9 @@ Not feasible to address right now, because we will focus on the top X, which is 
     - API
         - https://docs.opensea.io/reference/retrieving-collections
 - Etherscan: Get transactions of voters
+- Transaction of NFT sale dataset 
+    - source: Nadini, M., Alessandretti, L., Di Giacinto, F. et al. Mapping the NFT revolution: market trends, trade networks, and visual features. Sci Rep 11, 20902 (2021). https://doi.org/10.1038/s41598-021-00053-8
+    - code: https://osf.io/wsnzr/?view_only=319a53cf1bf542bbbe538aba37916537
 
 # Potential points of failure
 
