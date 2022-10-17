@@ -40,6 +40,7 @@ Not feasible to address right now, because we will focus on the top X, which is 
 - Risk that we simply establish connections between active members of the crypto community
 - Some people seem to keep their NFTs in so-called vault accounts
     - e.g. https://opensea.io/Khalissman-Vault
+- Data availability for homophily part might be limited
 
 
 # Preliminary data analysis and visualization
