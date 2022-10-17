@@ -2,7 +2,7 @@
 ## Do DAO members share common interests outside of the DAO?
 - For now: Did any of the top X addresses that have voted in DAOs also transact with any of the top X NFT projects' smart contracts?
 
-## Do DAO members that show cultural assortativity share more DAOs affiliations?
+## Do DAO members that show cultural assortativity share more DAO affiliations?
 - Cultural assortativity
     - Shared out-of-DAO transactions with e.g. NFT smart contracts
     - Token holdings?
