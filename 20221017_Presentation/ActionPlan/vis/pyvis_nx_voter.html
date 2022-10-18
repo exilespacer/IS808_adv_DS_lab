@@ -1,0 +1,163 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1200px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "id": "0x0998160bdf3ff6d86a4e9d5c31e0efc3ca7e7d01", "label": "0x0998160bdf3ff6d86a4e9d5c31e0efc3ca7e7d01", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x14bdfda5b5b829f14332a52c15129386284ce36a", "label": "0x14bdfda5b5b829f14332a52c15129386284ce36a", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x194f0fe6d4dfbf198868b1b507cd74122fbfebcc", "label": "0x194f0fe6d4dfbf198868b1b507cd74122fbfebcc", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x1ca48a32482ef29708e95f248e8a613f05782ed3", "label": "0x1ca48a32482ef29708e95f248e8a613f05782ed3", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x24e6d835f23b9716af984f6604625c6b074015cd", "label": "0x24e6d835f23b9716af984f6604625c6b074015cd", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x4194ce73ac3fbbece8ffa878c2b5a8c90333e724", "label": "0x4194ce73ac3fbbece8ffa878c2b5a8c90333e724", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x5d47e5d242a8f66a6286b0a2353868875f5d6068", "label": "0x5d47e5d242a8f66a6286b0a2353868875f5d6068", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x8540f80fab2afcae8d8fd6b1557b1cf943a0999b", "label": "0x8540f80fab2afcae8d8fd6b1557b1cf943a0999b", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x8f9be4310f9abb0e5843cc6363908c9b01dfeb3f", "label": "0x8f9be4310f9abb0e5843cc6363908c9b01dfeb3f", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0xc79c88386c95130bf7c20a184cb8281ed639fab4", "label": "0xc79c88386c95130bf7c20a184cb8281ed639fab4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x059e822cfe96bfcdce58522138d49d12343f2032", "label": "0x059e822cfe96bfcdce58522138d49d12343f2032", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x088873f2bf4490e7676536c261d96f47c78df56b", "label": "0x088873f2bf4490e7676536c261d96f47c78df56b", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "label": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "label": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "label": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "label": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x5a9e792143bf2708b4765c144451dca54f559a19", "label": "0x5a9e792143bf2708b4765c144451dca54f559a19", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "label": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "label": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "label": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "label": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "label": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "label": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "label": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "label": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x02c4bc6b7dda908bf89bda10cf8dbb8649823284", "label": "0x02c4bc6b7dda908bf89bda10cf8dbb8649823284", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x82dc92b01c7ff54911842956083795f60f6f64f4", "label": "0x82dc92b01c7ff54911842956083795f60f6f64f4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x956d079b656a3955ab4f2f596d1bbfd6f3ae60dc", "label": "0x956d079b656a3955ab4f2f596d1bbfd6f3ae60dc", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0xb84501efe8b7d824329ac9ce76eb5a48372bde22", "label": "0xb84501efe8b7d824329ac9ce76eb5a48372bde22", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0xef8527a364ccee8ebd2c5dd17244449e884890f4", "label": "0xef8527a364ccee8ebd2c5dd17244449e884890f4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0xd9c3415bf8600f007a1b4199df967c25a3e00eea", "label": "0xd9c3415bf8600f007a1b4199df967c25a3e00eea", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0xe3e39161d35e9a81edec667a5387bfae85752854", "label": "0xe3e39161d35e9a81edec667a5387bfae85752854", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0xab12253171a0d73df64b115cd43fe0a32feb9daa", "label": "0xab12253171a0d73df64b115cd43fe0a32feb9daa", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0x5da5f4c020f856abdb168fd35c957d6006ba2ede", "label": "0x5da5f4c020f856abdb168fd35c957d6006ba2ede", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "0xd7efae6e8e0556ebb5e77a499a34fce6a4d8c722", "label": "0xd7efae6e8e0556ebb5e77a499a34fce6a4d8c722", "shape": "dot", "size": 10}]);
+                  edges = new vis.DataSet([{"from": "0x0998160bdf3ff6d86a4e9d5c31e0efc3ca7e7d01", "to": "0x14bdfda5b5b829f14332a52c15129386284ce36a", "width": 1}, {"from": "0x0998160bdf3ff6d86a4e9d5c31e0efc3ca7e7d01", "to": "0x194f0fe6d4dfbf198868b1b507cd74122fbfebcc", "width": 1}, {"from": "0x0998160bdf3ff6d86a4e9d5c31e0efc3ca7e7d01", "to": "0x1ca48a32482ef29708e95f248e8a613f05782ed3", "width": 1}, {"from": "0x0998160bdf3ff6d86a4e9d5c31e0efc3ca7e7d01", "to": "0x24e6d835f23b9716af984f6604625c6b074015cd", "width": 1}, {"from": "0x0998160bdf3ff6d86a4e9d5c31e0efc3ca7e7d01", "to": "0x4194ce73ac3fbbece8ffa878c2b5a8c90333e724", "width": 1}, {"from": "0x0998160bdf3ff6d86a4e9d5c31e0efc3ca7e7d01", "to": "0x5d47e5d242a8f66a6286b0a2353868875f5d6068", "width": 1}, {"from": "0x0998160bdf3ff6d86a4e9d5c31e0efc3ca7e7d01", "to": "0x8540f80fab2afcae8d8fd6b1557b1cf943a0999b", "width": 1}, {"from": "0x0998160bdf3ff6d86a4e9d5c31e0efc3ca7e7d01", "to": "0x8f9be4310f9abb0e5843cc6363908c9b01dfeb3f", "width": 1}, {"from": "0x0998160bdf3ff6d86a4e9d5c31e0efc3ca7e7d01", "to": "0xc79c88386c95130bf7c20a184cb8281ed639fab4", "width": 1}, {"from": "0x14bdfda5b5b829f14332a52c15129386284ce36a", "to": "0x194f0fe6d4dfbf198868b1b507cd74122fbfebcc", "width": 1}, {"from": "0x14bdfda5b5b829f14332a52c15129386284ce36a", "to": "0x1ca48a32482ef29708e95f248e8a613f05782ed3", "width": 1}, {"from": "0x14bdfda5b5b829f14332a52c15129386284ce36a", "to": "0x24e6d835f23b9716af984f6604625c6b074015cd", "width": 1}, {"from": "0x14bdfda5b5b829f14332a52c15129386284ce36a", "to": "0x4194ce73ac3fbbece8ffa878c2b5a8c90333e724", "width": 1}, {"from": "0x14bdfda5b5b829f14332a52c15129386284ce36a", "to": "0x5d47e5d242a8f66a6286b0a2353868875f5d6068", "width": 1}, {"from": "0x14bdfda5b5b829f14332a52c15129386284ce36a", "to": "0x8540f80fab2afcae8d8fd6b1557b1cf943a0999b", "width": 1}, {"from": "0x14bdfda5b5b829f14332a52c15129386284ce36a", "to": "0x8f9be4310f9abb0e5843cc6363908c9b01dfeb3f", "width": 1}, {"from": "0x14bdfda5b5b829f14332a52c15129386284ce36a", "to": "0xc79c88386c95130bf7c20a184cb8281ed639fab4", "width": 1}, {"from": "0x194f0fe6d4dfbf198868b1b507cd74122fbfebcc", "to": "0x1ca48a32482ef29708e95f248e8a613f05782ed3", "width": 1}, {"from": "0x194f0fe6d4dfbf198868b1b507cd74122fbfebcc", "to": "0x24e6d835f23b9716af984f6604625c6b074015cd", "width": 1}, {"from": "0x194f0fe6d4dfbf198868b1b507cd74122fbfebcc", "to": "0x4194ce73ac3fbbece8ffa878c2b5a8c90333e724", "width": 1}, {"from": "0x194f0fe6d4dfbf198868b1b507cd74122fbfebcc", "to": "0x5d47e5d242a8f66a6286b0a2353868875f5d6068", "width": 1}, {"from": "0x194f0fe6d4dfbf198868b1b507cd74122fbfebcc", "to": "0x8540f80fab2afcae8d8fd6b1557b1cf943a0999b", "width": 1}, {"from": "0x194f0fe6d4dfbf198868b1b507cd74122fbfebcc", "to": "0x8f9be4310f9abb0e5843cc6363908c9b01dfeb3f", "width": 1}, {"from": "0x194f0fe6d4dfbf198868b1b507cd74122fbfebcc", "to": "0xc79c88386c95130bf7c20a184cb8281ed639fab4", "width": 1}, {"from": "0x1ca48a32482ef29708e95f248e8a613f05782ed3", "to": "0x24e6d835f23b9716af984f6604625c6b074015cd", "width": 1}, {"from": "0x1ca48a32482ef29708e95f248e8a613f05782ed3", "to": "0x4194ce73ac3fbbece8ffa878c2b5a8c90333e724", "width": 1}, {"from": "0x1ca48a32482ef29708e95f248e8a613f05782ed3", "to": "0x5d47e5d242a8f66a6286b0a2353868875f5d6068", "width": 1}, {"from": "0x1ca48a32482ef29708e95f248e8a613f05782ed3", "to": "0x8540f80fab2afcae8d8fd6b1557b1cf943a0999b", "width": 1}, {"from": "0x1ca48a32482ef29708e95f248e8a613f05782ed3", "to": "0x8f9be4310f9abb0e5843cc6363908c9b01dfeb3f", "width": 1}, {"from": "0x1ca48a32482ef29708e95f248e8a613f05782ed3", "to": "0xc79c88386c95130bf7c20a184cb8281ed639fab4", "width": 1}, {"from": "0x24e6d835f23b9716af984f6604625c6b074015cd", "to": "0x4194ce73ac3fbbece8ffa878c2b5a8c90333e724", "width": 1}, {"from": "0x24e6d835f23b9716af984f6604625c6b074015cd", "to": "0x5d47e5d242a8f66a6286b0a2353868875f5d6068", "width": 1}, {"from": "0x24e6d835f23b9716af984f6604625c6b074015cd", "to": "0x8540f80fab2afcae8d8fd6b1557b1cf943a0999b", "width": 1}, {"from": "0x24e6d835f23b9716af984f6604625c6b074015cd", "to": "0x8f9be4310f9abb0e5843cc6363908c9b01dfeb3f", "width": 1}, {"from": "0x24e6d835f23b9716af984f6604625c6b074015cd", "to": "0xc79c88386c95130bf7c20a184cb8281ed639fab4", "width": 1}, {"from": "0x4194ce73ac3fbbece8ffa878c2b5a8c90333e724", "to": "0x5d47e5d242a8f66a6286b0a2353868875f5d6068", "width": 1}, {"from": "0x4194ce73ac3fbbece8ffa878c2b5a8c90333e724", "to": "0x8540f80fab2afcae8d8fd6b1557b1cf943a0999b", "width": 1}, {"from": "0x4194ce73ac3fbbece8ffa878c2b5a8c90333e724", "to": "0x8f9be4310f9abb0e5843cc6363908c9b01dfeb3f", "width": 1}, {"from": "0x4194ce73ac3fbbece8ffa878c2b5a8c90333e724", "to": "0xc79c88386c95130bf7c20a184cb8281ed639fab4", "width": 1}, {"from": "0x5d47e5d242a8f66a6286b0a2353868875f5d6068", "to": "0x8540f80fab2afcae8d8fd6b1557b1cf943a0999b", "width": 1}, {"from": "0x5d47e5d242a8f66a6286b0a2353868875f5d6068", "to": "0x8f9be4310f9abb0e5843cc6363908c9b01dfeb3f", "width": 1}, {"from": "0x5d47e5d242a8f66a6286b0a2353868875f5d6068", "to": "0xc79c88386c95130bf7c20a184cb8281ed639fab4", "width": 1}, {"from": "0x8540f80fab2afcae8d8fd6b1557b1cf943a0999b", "to": "0x8f9be4310f9abb0e5843cc6363908c9b01dfeb3f", "width": 1}, {"from": "0x8540f80fab2afcae8d8fd6b1557b1cf943a0999b", "to": "0xc79c88386c95130bf7c20a184cb8281ed639fab4", "width": 1}, {"from": "0x8f9be4310f9abb0e5843cc6363908c9b01dfeb3f", "to": "0xc79c88386c95130bf7c20a184cb8281ed639fab4", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0x088873f2bf4490e7676536c261d96f47c78df56b", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0x5a9e792143bf2708b4765c144451dca54f559a19", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "width": 1}, {"from": "0x059e822cfe96bfcdce58522138d49d12343f2032", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0x5a9e792143bf2708b4765c144451dca54f559a19", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0x02c4bc6b7dda908bf89bda10cf8dbb8649823284", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0x82dc92b01c7ff54911842956083795f60f6f64f4", "width": 1}, {"from": "0x088873f2bf4490e7676536c261d96f47c78df56b", "to": "0x956d079b656a3955ab4f2f596d1bbfd6f3ae60dc", "width": 1}, {"from": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "to": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "width": 1}, {"from": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "to": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "width": 1}, {"from": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "to": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "width": 1}, {"from": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "to": "0x5a9e792143bf2708b4765c144451dca54f559a19", "width": 1}, {"from": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "to": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "width": 1}, {"from": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "to": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "width": 1}, {"from": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "to": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "width": 1}, {"from": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "to": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "width": 1}, {"from": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "to": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "width": 1}, {"from": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "to": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "width": 1}, {"from": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "to": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "width": 1}, {"from": "0x10d6d2e343281d388291a3e02f3293aaeda67178", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "to": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "width": 1}, {"from": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "to": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "width": 1}, {"from": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "to": "0x5a9e792143bf2708b4765c144451dca54f559a19", "width": 1}, {"from": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "to": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "width": 1}, {"from": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "to": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "width": 1}, {"from": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "to": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "width": 1}, {"from": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "to": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "width": 1}, {"from": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "to": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "width": 1}, {"from": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "to": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "width": 1}, {"from": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "to": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "width": 1}, {"from": "0x1d5e65a087ebc3d03a294412e46ce5d6882969f4", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "to": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "width": 1}, {"from": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "to": "0x5a9e792143bf2708b4765c144451dca54f559a19", "width": 1}, {"from": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "to": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "width": 1}, {"from": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "to": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "width": 1}, {"from": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "to": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "width": 1}, {"from": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "to": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "width": 1}, {"from": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "to": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "width": 1}, {"from": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "to": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "width": 1}, {"from": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "to": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "width": 1}, {"from": "0x39de56518e136d472ef9645e7d6e1f7c6c8ed37b", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "to": "0x5a9e792143bf2708b4765c144451dca54f559a19", "width": 1}, {"from": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "to": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "width": 1}, {"from": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "to": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "width": 1}, {"from": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "to": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "width": 1}, {"from": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "to": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "width": 1}, {"from": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "to": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "width": 1}, {"from": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "to": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "width": 1}, {"from": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "to": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "width": 1}, {"from": "0x565b93a15d38acd79c120b15432d21e21ed274d6", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0x5a9e792143bf2708b4765c144451dca54f559a19", "to": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "width": 1}, {"from": "0x5a9e792143bf2708b4765c144451dca54f559a19", "to": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "width": 1}, {"from": "0x5a9e792143bf2708b4765c144451dca54f559a19", "to": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "width": 1}, {"from": "0x5a9e792143bf2708b4765c144451dca54f559a19", "to": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "width": 1}, {"from": "0x5a9e792143bf2708b4765c144451dca54f559a19", "to": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "width": 1}, {"from": "0x5a9e792143bf2708b4765c144451dca54f559a19", "to": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "width": 1}, {"from": "0x5a9e792143bf2708b4765c144451dca54f559a19", "to": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "width": 1}, {"from": "0x5a9e792143bf2708b4765c144451dca54f559a19", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "to": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "width": 1}, {"from": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "to": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "width": 1}, {"from": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "to": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "width": 1}, {"from": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "to": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "width": 1}, {"from": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "to": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "width": 1}, {"from": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "to": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "width": 1}, {"from": "0x68f9d801c96ac6ccf562f3600cef77c4504449b6", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "to": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "width": 1}, {"from": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "to": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "width": 1}, {"from": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "to": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "width": 1}, {"from": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "to": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "width": 1}, {"from": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "to": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "width": 1}, {"from": "0x6ef2376fa6e12dabb3a3ed0fb44e4ff29847af68", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "to": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "width": 1}, {"from": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "to": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "width": 1}, {"from": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "to": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "width": 1}, {"from": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "to": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "width": 1}, {"from": "0x865c2f85c9fea1c6ac7f53de07554d68cb92ed88", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "to": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "width": 1}, {"from": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "to": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "width": 1}, {"from": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "to": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "width": 1}, {"from": "0xb0e83c2d71a991017e0116d58c5765abc57384af", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "to": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "width": 1}, {"from": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "to": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "width": 1}, {"from": "0xbd72d021d3cb334deb3151db905ee073b8eee518", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "to": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "width": 1}, {"from": "0xd714dd60e22bbb1cbafd0e40de5cfa7bbdd3f3c8", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0xf20ed9df8a4d06540db6e7621a4d35098358d08a", "to": "0xfd1af514b8b2bf00d1999497668bff26ccdf4c8a", "width": 1}, {"from": "0xb84501efe8b7d824329ac9ce76eb5a48372bde22", "to": "0xef8527a364ccee8ebd2c5dd17244449e884890f4", "width": 1}, {"from": "0xd9c3415bf8600f007a1b4199df967c25a3e00eea", "to": "0xe3e39161d35e9a81edec667a5387bfae85752854", "width": 1}, {"from": "0x02c4bc6b7dda908bf89bda10cf8dbb8649823284", "to": "0xab12253171a0d73df64b115cd43fe0a32feb9daa", "width": 1}, {"from": "0x02c4bc6b7dda908bf89bda10cf8dbb8649823284", "to": "0x82dc92b01c7ff54911842956083795f60f6f64f4", "width": 1}, {"from": "0x02c4bc6b7dda908bf89bda10cf8dbb8649823284", "to": "0x956d079b656a3955ab4f2f596d1bbfd6f3ae60dc", "width": 1}, {"from": "0x5da5f4c020f856abdb168fd35c957d6006ba2ede", "to": "0xd7efae6e8e0556ebb5e77a499a34fce6a4d8c722", "width": 1}, {"from": "0x82dc92b01c7ff54911842956083795f60f6f64f4", "to": "0x956d079b656a3955ab4f2f596d1bbfd6f3ae60dc", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "repulsion": {
+            "centralGravity": 0.2,
+            "damping": 0.09,
+            "nodeDistance": 100,
+            "springConstant": 0.05,
+            "springLength": 200
+        },
+        "solver": "repulsion",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
