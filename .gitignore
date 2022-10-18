@@ -6,6 +6,7 @@
 !collections.json
 !combined_members.json
 !network_df.csv
+!deepdao_id_name_mapping.json
 
 package-lock.json
 node_modules/
