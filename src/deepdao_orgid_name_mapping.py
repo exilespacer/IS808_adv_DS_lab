@@ -4,7 +4,7 @@ import json
 
 # %%
 projectfolder = Path("/project/IS808_adv_DS_lab")
-folder = projectfolder / "3_api/deepdao/data"
+folder = projectfolder / "data"
 
 # %%
 

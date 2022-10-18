@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # ## Power Masternodes
-# 
+#
 # First, load everthing at once.
 
 # In[1]:
@@ -46,71 +46,63 @@ with open("../3_api/.private/keys.json") as keys_file:
 
 ## DEEPDAO
 
+
 def deepdao(query, params=None, post=False):
 
-    ENDPOINT = 'https://api.deepdao.io/v0.1/'
+    ENDPOINT = "https://api.deepdao.io/v0.1/"
 
-    headers={
-        'x-api-key': KEYS['DEEPDAO'],
-        'accept': 'application/json'
-    }
+    headers = {"x-api-key": KEYS["DEEPDAO"], "accept": "application/json"}
 
     if post:
-        response = requests.post(ENDPOINT + query,
-                                headers=headers,
-                                json=params)
+        response = requests.post(ENDPOINT + query, headers=headers, json=params)
     else:
-        response = requests.get(ENDPOINT + query,
-                                headers=headers,
-                                params=params)
+        response = requests.get(ENDPOINT + query, headers=headers, params=params)
 
     print(response)
     return response.json()
+
 
 ## ETHERSCAN
 ############
 
+
 def etherscan(params={}):
 
-    ENDPOINT = 'https://api.etherscan.io/api'
+    ENDPOINT = "https://api.etherscan.io/api"
 
-    params['apikey'] = KEYS['ETHERSCAN']
+    params["apikey"] = KEYS["ETHERSCAN"]
 
-    response = requests.get(ENDPOINT,
-                            headers={
-                                'accept': 'application/json',
-                                "User-Agent": ""
-                            },
-                            params=params)
+    response = requests.get(
+        ENDPOINT,
+        headers={"accept": "application/json", "User-Agent": ""},
+        params=params,
+    )
 
     print(response)
     return response.json()
 
 
-eth = Etherscan(KEYS['ETHERSCAN'])
+eth = Etherscan(KEYS["ETHERSCAN"])
 
 ## SNAPSHOT
 ###########
 
 SNAPSHOT_ENDPOINT = "https://hub.snapshot.org/graphql"
 
-snapshot = Client(
-    transport=AIOHTTPTransport(url=SNAPSHOT_ENDPOINT)
-)
+snapshot = Client(transport=AIOHTTPTransport(url=SNAPSHOT_ENDPOINT))
 
 
 def snapshot_rest(query, params=None):
 
-    response = requests.post(SNAPSHOT_ENDPOINT,
-                            headers={                      
-                                'accept': 'application/json'
-                            },
-                            params={
-                                'query': query
-                            })
+    response = requests.post(
+        SNAPSHOT_ENDPOINT,
+        headers={"accept": "application/json"},
+        params={"query": query},
+    )
 
     print(response)
-    return response.json()['data']
+    return response.json()["data"]
+
 
 ## THE GRAPH
 ############
@@ -129,9 +121,11 @@ def pd_read_json(file):
 def get_query(filename, do_gql=False):
     with open("gql_queries/" + filename.replace(".gql", "") + ".gql") as f:
         query = f.read()
-        if do_gql: query = gql(query)
+        if do_gql:
+            query = gql(query)
     return query
-    
+
+
 ## Alias gq.
 gq = get_query
 
@@ -139,14 +133,32 @@ gq = get_query
 def get_query(filename, do_gql=False):
     with open("gql_queries/" + filename.replace(".gql", "") + ".gql") as f:
         query = f.read()
-        if do_gql: query = gql(query)
+        if do_gql:
+            query = gql(query)
     return query
-    
+
+
 ## Alias gq.
 gq = get_query
 
-async def gql_all(query, field, first=1000, skip=None, initial_list=None, 
-                  counter = True, limit=None, save=None, save_interval=10, clear_on_save = False, append=True, rest=False, data_dir="data", save_counter = 1, vars=None):
+
+async def gql_all(
+    query,
+    field,
+    first=1000,
+    skip=None,
+    initial_list=None,
+    counter=True,
+    limit=None,
+    save=None,
+    save_interval=10,
+    clear_on_save=False,
+    append=True,
+    rest=False,
+    data_dir="data",
+    save_counter=1,
+    vars=None,
+):
 
     ## The returned value and the varible used to accumulate results.
     out = []
@@ -166,25 +178,24 @@ async def gql_all(query, field, first=1000, skip=None, initial_list=None,
         df = pd.DataFrame(out)
 
         if clear_on_save:
-            
+
             nonlocal save_counter
-            
+
             sv = str(save_counter)
             sv = sv.zfill(5)
             save_counter += 1
 
-            filename = save.replace('.json', '_' + sv + '.json')
-            
+            filename = save.replace(".json", "_" + sv + ".json")
+
             out = []
             out_str = "Saved and cleared."
         else:
             filename = save
             out_str = "Saved."
-        
+
         df.to_json(data_dir + "/" + filename, orient="records")
         print(out_str)
 
-        
     ## Load initial list.
     ## If no skip is provided, then skip is set to the length of
     ## the initial list, otherwise we use the user-specified value
@@ -198,16 +209,15 @@ async def gql_all(query, field, first=1000, skip=None, initial_list=None,
     ## Make a GQL query object, if necessary.
     if not rest and type(query) == str:
         query = gql(query)
-        
 
     my_counter = 0
     fetch = True
     try:
         while fetch:
-            
+
             my_counter += 1
             if limit and my_counter > limit:
-                print('**Limit reached: ', limit)
+                print("**Limit reached: ", limit)
                 fetch = False
                 continue
 
@@ -225,24 +235,25 @@ async def gql_all(query, field, first=1000, skip=None, initial_list=None,
                         q = q.replace("$" + v, str(vars[v]))
 
                 res = snapshot_rest(q)
-                
+
             else:
-                
+
                 _vars = {"first": first, "skip": skip}
-                
+
                 ## Optional additional variables.
                 if vars:
                     _vars = _vars | vars
 
                 res = await snapshot.execute_async(query, variable_values=_vars)
-            
+
             if not res[field]:
-                print('**I am done fetching!**')
+                print("**I am done fetching!**")
                 fetch = False
             else:
                 out.extend(res[field])
                 skip += first
-                if counter: print(my_counter, len(out))
+                if counter:
+                    print(my_counter, len(out))
 
                 if save and my_counter % save_interval == 0:
                     save_json()
@@ -253,13 +264,14 @@ async def gql_all(query, field, first=1000, skip=None, initial_list=None,
     except Exception as e:
         print(str(e))
         print("**An error occurred, exiting early.**")
-        if save: save_json()
-    
+        if save:
+            save_json()
+
     return out
 
-def pd_read_dir(dir, blacklist=None, whitelist=None, ext=('.json')):
+
+def pd_read_dir(dir, blacklist=None, whitelist=None, ext=(".json")):
     dir_df = pd.DataFrame()
-    
 
     for file in os.listdir(dir):
         if blacklist and file in blacklist:
@@ -268,14 +280,14 @@ def pd_read_dir(dir, blacklist=None, whitelist=None, ext=('.json')):
             continue
 
         if file.endswith(ext):
-            tmp_df = pd_read_json(dir + '/' + file)
+            tmp_df = pd_read_json(dir + "/" + file)
             dir_df = pd.concat([dir_df, tmp_df])
-    
+
     return dir_df
 
 
 # ## Preparing to compute power as in Mosley et al. (2022).
-# 
+#
 # "Towards a systemic understanding of blockchain governance in proposal voting: A dash case study."
 
 # Load `spaces`, `proposals`, and `votes`.
@@ -301,8 +313,8 @@ all_votes = pd_read_dir("data/votes")
 ## Otherwise.
 ## This query takes a while...
 # votes_query = gq("snapshot_votes")
-# res = await gql_all(votes_query, 
-#                     field="votes", 
+# res = await gql_all(votes_query,
+#                     field="votes",
 #                     rest=True,
 #                     save="snapshot_votes_test.json",
 #                     data_dir="data/votes/",
@@ -340,7 +352,7 @@ all_proposals.info()
 # In[29]:
 
 
-all_proposals['space'].head() 
+all_proposals["space"].head()
 
 
 # #### Votes.
@@ -363,7 +375,7 @@ all_votes.head()
 # ## Returns an error, we need to account for a None field.
 # # all_votes['proposal'] = all_votes['proposal'].apply(lambda x : x['id'])
 
-# all_votes['proposal'] = all_votes['proposal'].apply(lambda x : 
+# all_votes['proposal'] = all_votes['proposal'].apply(lambda x :
 #     x if x is None else x['id']
 # )
 
@@ -375,28 +387,28 @@ all_votes.head()
 # In[33]:
 
 
-most_props = spaces[spaces['proposalsCount'] == max(spaces['proposalsCount'])]
-DAO_MOST_PROPS_ID = most_props['id'].iloc[0]
+most_props = spaces[spaces["proposalsCount"] == max(spaces["proposalsCount"])]
+DAO_MOST_PROPS_ID = most_props["id"].iloc[0]
 DAO_MOST_PROPS_ID
 
 
 # In[34]:
 
 
-all_proposals['space'].value_counts()
+all_proposals["space"].value_counts()
 
 
 # In[35]:
 
 
-pancake_props = all_proposals[all_proposals['space'] == DAO_MOST_PROPS_ID ]
+pancake_props = all_proposals[all_proposals["space"] == DAO_MOST_PROPS_ID]
 pancake_props.info()
 
 
 # In[36]:
 
 
-pancake_votes = all_votes[all_votes['space'] == DAO_MOST_PROPS_ID ]
+pancake_votes = all_votes[all_votes["space"] == DAO_MOST_PROPS_ID]
 pancake_votes.info()
 
 
@@ -404,31 +416,31 @@ pancake_votes.info()
 
 
 ## Generate an error, there are mixed types.
-pancake_votes['choice'].value_counts()
+pancake_votes["choice"].value_counts()
 
 
 # In[38]:
 
 
-pancake_votes['choice'].describe()
+pancake_votes["choice"].describe()
 
 
 # Let's remove non 'int' votes (e.g., ranked choices).
-# 
+#
 # In the real analysis we should try to analyze all data.
 
 # In[39]:
 
 
 print(len(pancake_votes))
-pancake_votes = pancake_votes[pancake_votes['choice'].isin([1,2,3])]
+pancake_votes = pancake_votes[pancake_votes["choice"].isin([1, 2, 3])]
 print(len(pancake_votes))
 
 
 # In[40]:
 
 
-pancake_votes['choice'].value_counts()
+pancake_votes["choice"].value_counts()
 
 
 # Let's center them around zero.
@@ -436,8 +448,8 @@ pancake_votes['choice'].value_counts()
 # In[41]:
 
 
-pancake_votes['choice'] = pancake_votes['choice'] - 2
-pancake_votes['choice'].value_counts()
+pancake_votes["choice"] = pancake_votes["choice"] - 2
+pancake_votes["choice"].value_counts()
 
 
 # How much a node deviate from the others in every proposal.
@@ -446,32 +458,32 @@ pancake_votes['choice'].value_counts()
 
 
 def euclid(row):
-    vote = row['choice']
-    proposal = row['proposal']
-    other_votes = pancake_votes[pancake_votes['proposal'] == proposal]
-    distances = other_votes['choice'].apply(lambda x: math.pow((vote - x), 2))
+    vote = row["choice"]
+    proposal = row["proposal"]
+    other_votes = pancake_votes[pancake_votes["proposal"] == proposal]
+    distances = other_votes["choice"].apply(lambda x: math.pow((vote - x), 2))
     return math.sqrt(sum(distances))
 
 
-pancake_votes['vote_distance'] = pancake_votes.apply(euclid, axis=1)
+pancake_votes["vote_distance"] = pancake_votes.apply(euclid, axis=1)
 
 
 # In[43]:
 
 
-pancake_votes['vote_distance'].describe()
+pancake_votes["vote_distance"].describe()
 
 
 # In[44]:
 
 
-pancake_votes['vote_distance'].plot.hist(bins=100)
+pancake_votes["vote_distance"].plot.hist(bins=100)
 
 
 # In[45]:
 
 
-pancake_prop_groups = pancake_votes.groupby('proposal')
+pancake_prop_groups = pancake_votes.groupby("proposal")
 
 
 # What are the proposals with the highest variation in voting?
@@ -479,7 +491,7 @@ pancake_prop_groups = pancake_votes.groupby('proposal')
 # In[46]:
 
 
-pancake_prop_groups['vote_distance'].describe().sort_values('mean', ascending= False)
+pancake_prop_groups["vote_distance"].describe().sort_values("mean", ascending=False)
 
 
 # **Exercise: implement the Masternode Voting Network algorithm**
@@ -487,7 +499,7 @@ pancake_prop_groups['vote_distance'].describe().sort_values('mean', ascending= F
 # In[47]:
 
 
-voters = pancake_votes['voter'].unique()
+voters = pancake_votes["voter"].unique()
 len(voters)
 
 
@@ -498,7 +510,3 @@ len(voters)
 
 
 # In[ ]:
-
-
-
-

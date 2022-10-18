@@ -1,18 +1,19 @@
 # %%
-import requests
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 import time
-from tqdm import tqdm
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import requests
+from tqdm import tqdm
+import json
 
 projectfolder = Path("/project/IS808_adv_DS_lab")
 
 # %%
 # https://martin-thoma.com/configuration-files-in-python/
 
-import json
 
 with open(projectfolder / ".private/keys.json") as keys_file:
     KEYS = json.load(keys_file)
@@ -79,7 +80,7 @@ def load_downloaded_daos(folder):
 if __name__ == "__main__":
     organizations = set(get_all_organizations())
 
-    folder = projectfolder / "3_api/deepdao/data/daomembers"
+    folder = projectfolder / "data/daomembers"
 
     todo = organizations - set(x.stem for x in folder.glob("*.json"))
 

@@ -237,7 +237,7 @@ if __name__ == "__main__":
         "0x199d53a6982a6281d0e2169b1c6473e0fb00d741",
     ]
 
-    folder = projectfolder / "3_api/opensea/data/collections"
+    folder = projectfolder / "data/collections"
     rdata = opensea_collections_for_addresses(
         daomemberaddresses[2:10],
         data_dir=folder,
