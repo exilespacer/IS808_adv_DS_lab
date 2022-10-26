@@ -6,6 +6,7 @@ from tqdm import tqdm
 from copy import deepcopy
 import pandas as pd
 from pathlib import Path
+import re
 
 # %%
 ENDPOINT = "https://api.opensea.io/api/v1/"
@@ -13,7 +14,7 @@ projectfolder = Path("/project/IS808_adv_DS_lab")
 
 
 # %%
-def get_collections(address, limit=300):
+def get_collections(address, limit=300, sleep_time_in_sec=1):
     """
     Executes GET request to download the all collections of which an address holds at least 1 NFT.
     """
@@ -30,7 +31,7 @@ def get_collections(address, limit=300):
 
         # Sleep only when required
         if idx > 0:
-            time.sleep(1)
+            time.sleep(sleep_time_in_sec)
 
         params = {
             "asset_owner": address,
@@ -84,8 +85,8 @@ def collections_to_dataframe(collectiondata):
 def opensea_collections_for_addresses(
     addresses,
     sleep_time_in_sec=2,
-    data_dir=None,
-    save_filename=None,
+    output_dir=None,
+    output_filename=None,
     clear_on_save=False,
     save_interval=10,
     output_data=[],
@@ -95,7 +96,10 @@ def opensea_collections_for_addresses(
     With delay to avoid API issues.
     """
 
-    save_counter = 1
+    # Ensure we don't overwrite existing files
+    save_counter = 1 + max(
+        [int(*re.findall(r"_(\d{5})", f.stem)) for f in output_dir.iterdir()]
+    )
 
     def save_file():
 
@@ -108,7 +112,7 @@ def opensea_collections_for_addresses(
             out = deepcopy(output_data)
             typ = "dict"
 
-        method = save_filename.rsplit(".")[-1]
+        method = output_filename.rsplit(".")[-1]
 
         if clear_on_save:
 
@@ -118,19 +122,19 @@ def opensea_collections_for_addresses(
             sv = sv.zfill(5)
             save_counter += 1
 
-            filename = save_filename.replace(f".{method}", f"_{sv}.{method}")
+            filename = output_filename.replace(f".{method}", f"_{sv}.{method}")
 
             output_data = []
         else:
-            filename = save_filename
+            filename = output_filename
 
         if method == "json" and typ == "df":
-            out.to_json(data_dir / filename, orient="records")
+            out.to_json(output_dir / filename, orient="records")
         elif method == "json" and typ == "dict":
-            with open(data_dir / filename, "w") as outfile:
+            with open(output_dir / filename, "w") as outfile:
                 json.dump(out, outfile)
         elif method in {"pq", "parquet"}:
-            out.to_parquet(data_dir / filename)
+            out.to_parquet(output_dir / filename)
         else:
             raise ValueError("Invalid filetype")
 
@@ -141,22 +145,22 @@ def opensea_collections_for_addresses(
                 desc="Querying OpenSea for collections of the provided addresses",
             )
         ):
-            r = get_collections(addr)
+            r = get_collections(addr, sleep_time_in_sec=sleep_time_in_sec)
             output_data.append(r)
 
-            if save_filename is not None and idx % save_interval == 0 and idx > 0:
+            if output_filename is not None and idx % save_interval == 0 and idx > 0:
                 save_file()
 
             time.sleep(sleep_time_in_sec)
     except Exception as exc:
         print(f"Error {exc.__class__}")
-        if save_filename is not None:
+        if output_filename is not None:
             save_file()
     if isinstance(output_data[0], pd.DataFrame):
         rval = pd.concat(output_data, axis=0)
     else:
         rval = output_data
-    if save_filename is not None:
+    if output_filename is not None:
         save_file()
     return rval
 
@@ -240,8 +244,8 @@ if __name__ == "__main__":
     folder = projectfolder / "data/collections"
     rdata = opensea_collections_for_addresses(
         daomemberaddresses[2:10],
-        data_dir=folder,
-        save_filename="collections.json",
+        output_dir=folder,
+        output_filename="collections.json",
         save_interval=2,
         clear_on_save=True,
     )

@@ -29,6 +29,7 @@ import json
 import asyncio
 
 from src.util import gq, gql_all, pd_read_json
+from src.opensea import opensea_collections_for_addresses
 
 
 # %%
@@ -74,7 +75,7 @@ done = set(s.name for s in votes_dir.glob("*"))
 
 todo = overall - done
 
-
+# %%
 votes_query = gq(gql_folder / "snapshot_votes_of_space.gql")
 for space in tqdm(todo):
 
@@ -100,6 +101,54 @@ for space in tqdm(todo):
         # Delete all already downloaded files for the space, so that we don't have half-finished downloads in our 'done' list
         shutil.rmtree(votes_dir / space)
         print(f"Deleted {votes_dir / space}")
+
+
+# %%
+
+unique_voters_file = data_dir / "unique_voters.json"
+
+vset = set()
+for file in votes_dir.glob("*/*.json"):
+    with open(file, "r") as fp:
+        fc = set(
+            v["voter"]
+            for v in json.load(fp)
+            if len(v["voter"]) == 42 and v["voter"][:2] == "0x"
+        )
+        vset |= fc
+
+with open(unique_voters_file, "w") as fp:
+    json.dump(list(vset), fp)
+
+with open(unique_voters_file, "r") as fp:
+    vset = set(json.load(fp))
+
+# %%
+
+collections_dir = projectfolder / "data/collections"
+collections_filename = "collections.json"
+
+cset = set()
+for file in collections_dir.glob("*.json"):
+    with open(file, "r") as f:
+        cset |= set(a["requestedaddress"] for a in json.load(f))
+
+    print(f"{file}-{len(cset)}")
+todo = vset - cset
+
+# %%
+r = opensea_collections_for_addresses(
+    todo,
+    output_dir=collections_dir,
+    output_filename=collections_filename,
+    save_interval=100,
+    clear_on_save=True,
+    sleep_time_in_sec=0.01,
+    # output_data=output_data,
+)
+# %%
+len(cset)
+# %%
 
 
 # %%

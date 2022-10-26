@@ -171,7 +171,7 @@ async def gql_all(
     return out
 
 
-def pd_read_json(file):
+def pd_read_json(file, *args, **kwargs):
     ## Prevents Value too big Error.
     with open(file) as f:
         df = json.load(f)
