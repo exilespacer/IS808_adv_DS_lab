@@ -1,0 +1,57 @@
+query ($first: Int = 1000, $skip: Int = 0) {
+  spaces(first: $first, skip: $skip) {
+    id
+    name
+    private
+    about
+    avatar
+    terms
+    location
+    website
+    twitter
+    github
+    email
+    network
+    symbol
+    skin
+    domain
+    strategies {
+      name
+      network
+      params
+    }
+    admins
+    members
+    filters {
+      minScore
+      onlyMembers
+    }
+    plugins
+    voting {
+      delay
+      period
+      type
+      quorum
+      blind
+      hideAbstain
+      privacy
+    }
+    categories
+    validation {
+      name
+    }
+    treasuries {
+      address
+      network
+      name
+    }
+    followersCount
+    proposalsCount
+    parent {
+      id
+    }
+    children {
+      id
+    }
+  }
+}
