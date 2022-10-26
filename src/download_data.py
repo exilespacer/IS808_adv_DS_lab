@@ -18,7 +18,7 @@ os.chdir(projectfolder)  # For interactive testing
 sys.path.insert(0, "")  # Required for loading modules
 
 import time
-from pathlib import Path
+import shutil
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,23 +35,71 @@ from src.util import gq, gql_all, pd_read_json
 gql_folder = projectfolder / "src" / "gql_queries"
 data_dir = projectfolder / "data"
 filename_spaces = "snapshot_spaces.json"
+filename_votes = "votes.json"
 
 
 # %%
-# Download the data if we don't have it already
-force = False
-if not (data_dir / filename_spaces).is_file() or force is True:
-    spaces_query = gq(gql_folder / "snapshot_spaces.gql")
-    asyncio.run(
-        gql_all(
-            spaces_query,
-            field="spaces",
-            output_filename=filename_spaces,
-            output_dir=data_dir,
-            batch_size=1000,
+def get_spaces(
+    data_dir,
+    filename,
+    force=False,
+):
+    # Download the data only if we don't have it already
+    if not (data_dir / filename).is_file() or force is True:
+        spaces_query = gq(gql_folder / "snapshot_spaces.gql")
+        # The following command will fail to run in an interactive session, such as Jupyter
+        # In that case you need to await gql_all... without asyncio.run()
+        asyncio.run(
+            gql_all(
+                spaces_query,
+                field="spaces",
+                output_filename=filename,
+                output_dir=data_dir,
+                batch_size=1000,
+            )
         )
-    )
 
-del force
-spaces = pd_read_json(data_dir / filename_spaces)
+    spaces = pd_read_json(data_dir / filename)
+
+    return spaces
+
+
+spaces = get_spaces(data_dir, filename_spaces, force=False)
+# %%
+
+# Make sure we can restart without losing any already done spaces
+votes_dir = data_dir / "votes"
+overall = set(spaces["id"])
+done = set(s.name for s in votes_dir.glob("*"))
+
+todo = overall - done
+
+
+votes_query = gq(gql_folder / "snapshot_votes_of_space.gql")
+for space in tqdm(todo):
+
+    print(f"Space: {space}")
+    try:
+        asyncio.run(
+            gql_all(
+                votes_query,
+                field="votes",
+                save_interval=10,
+                clear_on_save=True,
+                batch_size=2000,
+                rest=False,
+                output_filename=filename_votes,
+                output_dir=votes_dir / space,
+                vars={
+                    "space": space,
+                },
+                counter=False,
+            )
+        )
+    except:
+        # Delete all already downloaded files for the space, so that we don't have half-finished downloads in our 'done' list
+        shutil.rmtree(votes_dir / space)
+        print(f"Deleted {votes_dir / space}")
+
+
 # %%

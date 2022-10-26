@@ -91,6 +91,8 @@ async def gql_all(
             filename = output_filename
             out_str = "Saved."
 
+        output_dir.mkdir(parents=True, exist_ok=True)
+
         df.to_json(output_dir / filename, orient="records")
         print(out_str)
 
@@ -164,6 +166,7 @@ async def gql_all(
         print("**An error occurred, exiting early.**")
         if output_filename is not None:
             save_json()
+        raise
 
     return out
 
