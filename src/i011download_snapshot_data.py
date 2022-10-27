@@ -120,35 +120,6 @@ for file in votes_dir.glob("*/*.json"):
 with open(unique_voters_file, "w") as fp:
     json.dump(list(vset), fp)
 
-with open(unique_voters_file, "r") as fp:
-    vset = set(json.load(fp))
-
 # %%
 
-collections_dir = projectfolder / "data/collections"
-collections_filename = "collections.json"
-
-cset = set()
-for file in collections_dir.glob("*.json"):
-    with open(file, "r") as f:
-        cset |= set(a["requestedaddress"] for a in json.load(f))
-
-    print(f"{file}-{len(cset)}")
-todo = vset - cset
-
-# %%
-r = opensea_collections_for_addresses(
-    todo,
-    output_dir=collections_dir,
-    output_filename=collections_filename,
-    save_interval=100,
-    clear_on_save=True,
-    sleep_time_in_sec=0.01,
-    # output_data=output_data,
-)
-# %%
-len(vset)
-# %%
-
-
-# %%
+# For the next steps see download_data_share.py
