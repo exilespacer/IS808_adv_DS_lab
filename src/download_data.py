@@ -147,7 +147,7 @@ r = opensea_collections_for_addresses(
     # output_data=output_data,
 )
 # %%
-len(cset)
+len(vset)
 # %%
 
 

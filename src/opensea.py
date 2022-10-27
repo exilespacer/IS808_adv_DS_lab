@@ -97,9 +97,12 @@ def opensea_collections_for_addresses(
     """
 
     # Ensure we don't overwrite existing files
-    save_counter = 1 + max(
-        [int(*re.findall(r"_(\d{5})", f.stem)) for f in output_dir.iterdir()]
-    )
+    try:
+        save_counter = 1 + max(
+            [int(*re.findall(r"_(\d{5})", f.stem)) for f in output_dir.iterdir()]
+        )
+    except ValueError:
+        save_counter = 1
 
     def save_file():
 
