@@ -33,7 +33,7 @@ output_file = "collections.pq"
 # %%
 
 coll = []
-for file in tqdm(results_folder.glob("*.json")):
+for file in tqdm(list(results_folder.glob("*.json"))):
     coll.append(
         pd_read_json(file)
         # .assign(fname=file)
@@ -58,6 +58,6 @@ df["owned_asset_count"] = df["owned_asset_count"].astype(float)
 
 # %%
 # Use parquet for more compression
-df.to_parquet(data_dir / output_file, compression="brotli")
+df.to_parquet(data_dir / output_file, compression="brotli", index=False)
 
 # %%

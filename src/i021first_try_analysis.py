@@ -1,4 +1,23 @@
 # %%
+from pathlib import Path
+
+# Duplicate and comment out this row
+# It should be the top level folder of the repository
+# Sven
+projectfolder = Path("/project/IS808_adv_DS_lab")
+
+
+# Chia-Yi
+# projectfolder = Path("xyz/abc/IS808_adv_DS_lab")
+
+# %%
+import os
+import sys
+
+os.chdir(projectfolder)  # For interactive testing
+sys.path.insert(0, "")  # Required for loading modules
+
+
 import io
 import json
 import pickle
@@ -11,20 +30,30 @@ from pyvis.network import Network
 from tqdm import tqdm
 
 # %%
-df_raw = pd.read_csv("network_df.csv").assign(
-    owned_asset_count=lambda x: x.owned_asset_count.astype(float),
-)
-df_raw.info()
-df_raw.head()
+data_dir = projectfolder / "data"
+opensea_downloads = "collections.pq"
+dao_voter_mapping = "dao_voter_mapping.pq"
+dao_voters_merged_with_opensea = "dao_voters_merged_with_opensea.pq"
 
 # %%
-# add DAO names
 
-with io.open("../../3_api/deepdao/data/deepdao_id_name_mapping.json", mode="r") as f:
-    dao_id_name = json.load(f)
+if not (data_dir / dao_voters_merged_with_opensea).is_file():
+    df_opensea = pd.read_parquet(data_dir / opensea_downloads)
+    df_dao_voters = pd.read_parquet(data_dir / dao_voter_mapping)
 
-df_raw = df_raw.assign(dao_name=lambda x: x.dao_id.replace(dao_id_name))
-
+    merged = pd.merge(
+        df_dao_voters,
+        df_opensea,
+        left_on="voter",
+        right_on="requestedaddress",
+        how="inner",
+        validate="m:m",
+    ).drop("requestedaddress", axis=1)
+    merged.to_parquet(
+        data_dir / dao_voters_merged_with_opensea, index=False, compression="brotli"
+    )
+else:
+    merged = pd.read_parquet(data_dir / dao_voters_merged_with_opensea)
 # %% [markdown]
 # # Summary statistics of data
 
@@ -33,16 +62,16 @@ df_raw = df_raw.assign(dao_name=lambda x: x.dao_id.replace(dao_id_name))
 
 # %%
 df_N = (
-    df_raw.loc[:, ["dao_id", "member_address", "slug"]]
+    df_opensea.loc[:, ["dao_id", "member_address", "slug"]]
     .nunique()
     .to_frame("distinct N")
     .T
 )
 df_N.columns = ["DAO", "top voter", "NFT"]
-df_N.pipe(display)
+df_N
 
 # %%
-df_voter = df_raw.groupby("member_address").agg(
+df_voter = df_opensea.groupby("member_address").agg(
     N_nft_kinds=("slug", "nunique"),
     N_nft_quantity=("owned_asset_count", np.sum),
 )
@@ -71,7 +100,7 @@ df_voter_stats.columns = [
     "log(Total NFT collections)",
     "Total NFT collections",
 ]
-df_voter_stats.pipe(display)
+df_voter_stats
 
 # %% [markdown]
 # # Focus on top N NFT collections
@@ -80,15 +109,15 @@ df_voter_stats.pipe(display)
 top_N = 20
 
 slug = (
-    df_raw.groupby("slug")
+    df_opensea.groupby("slug")
     .owned_asset_count.sum()
     .sort_values(ascending=False)
     .to_frame()
 )
-slug.pipe(display)
+slug
 
 slug_top = slug.head(top_N).index.tolist()
-df = df_raw.loc[lambda x: x.slug.isin(slug_top)]
+df = df_opensea.loc[lambda x: x.slug.isin(slug_top)]
 df.info()
 
 # %% [markdown]
@@ -123,8 +152,8 @@ df_network_dao.to_csv(f"{dir_path}/vis_network_dao.csv", index=False)
 
 # %%
 df_network_dao.info()
-df_network_dao.head().pipe(display)
-df_network_dao.weight.value_counts().to_frame("counts").pipe(display)
+df_network_dao.head()
+df_network_dao.weight.value_counts().to_frame("counts")
 
 # %%
 G_dao = nx.from_pandas_edgelist(
@@ -180,8 +209,8 @@ df_network_voter.to_csv(f"{dir_path}/vis_network_voter.csv", index=False)
 
 # %%
 df_network_voter.info()
-df_network_voter.head().pipe(display)
-df_network_voter.weight.value_counts().to_frame("counts").pipe(display)
+df_network_voter.head()
+df_network_voter.weight.value_counts().to_frame("counts")
 
 # %%
 df_network_voter[["Source", "Target"]] = df_network_voter[

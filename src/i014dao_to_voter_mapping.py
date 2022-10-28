@@ -35,7 +35,8 @@ for file in tqdm(list(votes_dir.glob("*/*.json"))):
         fc = [
             (vote["space"]["id"], vote["voter"])
             for vote in json.load(fp)
-            if len(vote["voter"]) == 42 and vote["voter"][:2] == "0x"
+            if len(vote["voter"]) == 42
+            and vote["voter"][:2] == "0x"  # Basic check to only get valid ETH addresses
         ]
         daolist.extend(fc)
 
@@ -45,6 +46,4 @@ del daolist, fc
 
 # %%
 # Use parquet for more compression
-df.to_parquet(data_dir / output_file, compression="brotli")
-
-# %%
+df.to_parquet(data_dir / output_file, compression="brotli", index=False)
