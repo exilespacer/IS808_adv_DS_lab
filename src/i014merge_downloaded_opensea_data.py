@@ -28,7 +28,7 @@ from src.util import pd_read_json
 # %%
 data_dir = projectfolder / "data"
 results_folder = data_dir / "opensea_downloaded"
-output_file = "collections.pq"
+output_file = "opensea_collections.pq"
 
 # %%
 

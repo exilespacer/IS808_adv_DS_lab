@@ -23,7 +23,7 @@ import json
 
 # %%
 data_dir = projectfolder / "data"
-votes_dir = data_dir / "votes"
+votes_dir = data_dir / "snapshot_votes"
 output_file = "dao_voter_mapping.pq"
 
 # %%

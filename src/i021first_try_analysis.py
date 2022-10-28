@@ -31,7 +31,7 @@ from tqdm import tqdm
 
 # %%
 data_dir = projectfolder / "data"
-opensea_downloads = "collections.pq"
+opensea_downloads = "opensea_collections.pq"
 dao_voter_mapping = "dao_voter_mapping.pq"
 dao_voters_merged_with_opensea = "dao_voters_merged_with_opensea.pq"
 

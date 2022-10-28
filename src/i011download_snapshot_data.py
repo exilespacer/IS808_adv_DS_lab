@@ -35,8 +35,10 @@ from src.opensea import opensea_collections_for_addresses
 # %%
 gql_folder = projectfolder / "src" / "gql_queries"
 data_dir = projectfolder / "data"
+votes_dir = data_dir / "snapshot_votes"
 filename_spaces = "snapshot_spaces.json"
 filename_votes = "votes.json"
+unique_voters_file = data_dir / "unique_voters.json"
 
 
 # %%
@@ -69,7 +71,6 @@ spaces = get_spaces(data_dir, filename_spaces, force=False)
 # %%
 
 # Make sure we can restart without losing any already done spaces
-votes_dir = data_dir / "votes"
 overall = set(spaces["id"])
 done = set(s.name for s in votes_dir.glob("*"))
 
@@ -105,7 +106,6 @@ for space in tqdm(todo):
 
 # %%
 
-unique_voters_file = data_dir / "unique_voters.json"
 
 vset = set()
 for file in votes_dir.glob("*/*.json"):

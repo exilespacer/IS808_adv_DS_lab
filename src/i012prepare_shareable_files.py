@@ -16,9 +16,9 @@ import numpy as np
 
 
 data_dir = projectfolder / "data"
+unique_voters_file = data_dir / "unique_voters.json"
 
 # %%
-unique_voters_file = data_dir / "unique_voters.json"
 pd.read_json(unique_voters_file).to_json(
     projectfolder / "downloader_to_share" / "input_splittable.json",
     orient="records",
@@ -36,12 +36,3 @@ for idx, part in enumerate(np.array_split(df, 15)):
         orient="records",
         lines=True,
     )
-
-# %%
-
-vset = set(
-    pd.read_json(data_dir / "test.json", lines=True, orient="records").iloc[:, 0]
-)
-
-
-# %%
