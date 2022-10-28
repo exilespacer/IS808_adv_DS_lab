@@ -26,8 +26,8 @@ import json
 from src.util import pd_read_json
 
 # %%
-results_folder = projectfolder / "downloader_to_share/serverside" / "output_folder"
 data_dir = projectfolder / "data"
+results_folder = data_dir / "opensea_downloaded"
 output_file = "collections.pq"
 
 # %%
@@ -58,4 +58,6 @@ df["owned_asset_count"] = df["owned_asset_count"].astype(float)
 
 # %%
 # Use parquet for more compression
-df.to_parquet(data_dir / output_file)
+df.to_parquet(data_dir / output_file, compression="brotli")
+
+# %%
