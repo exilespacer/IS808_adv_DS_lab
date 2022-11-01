@@ -5,6 +5,8 @@ from pathlib import Path
 # It should be the top level folder of the repository
 # Sven
 projectfolder = Path("/project/IS808_adv_DS_lab")
+# Mengnan
+# projectfolder = Path("/mypc/IS808_adv_DS_lab")
 
 
 # Chia-Yi
