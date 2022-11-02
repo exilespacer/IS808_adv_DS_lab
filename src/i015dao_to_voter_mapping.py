@@ -60,7 +60,7 @@ for file in tqdm(list(votes_dir.glob("*/*.json"))):
 
                 # Add new lines for all the choice combinations
                 for chc, pwr in choice.items():
-                    daolist.append((dao, voter, chc, pwr, proposalid))
+                    daolist.append((dao, voter, str(chc), float(pwr), proposalid))
 
 
 df = pd.DataFrame(daolist, columns=["dao", "voter", "choice", "power", "proposalid"])
@@ -68,8 +68,4 @@ del daolist
 
 # %%
 # Use parquet for more compression
-df.astype(str).to_parquet(data_dir / output_file, compression="brotli", index=False)
-
-# %%
-df.head().astype(str).info()
-# %%
+df.to_parquet(data_dir / output_file, compression="brotli", index=False)
