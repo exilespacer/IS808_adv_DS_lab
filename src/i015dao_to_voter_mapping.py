@@ -32,18 +32,44 @@ output_file = "dao_voter_mapping.pq"
 daolist = []
 for file in tqdm(list(votes_dir.glob("*/*.json"))):
     with open(file, "r") as fp:
-        fc = [
-            (vote["space"]["id"], vote["voter"])
-            for vote in json.load(fp)
-            if len(vote["voter"]) == 42
-            and vote["voter"][:2] == "0x"  # Basic check to only get valid ETH addresses
-        ]
-        daolist.extend(fc)
+        for vote in json.load(fp):
+            # Basic check to only get valid ETH addresses
+            if len(vote["voter"]) == 42 and vote["voter"][:2] == "0x":
+
+                # Extract the relevant data
+                dao = vote["space"]["id"]
+                voter = vote["voter"]
+
+                # Choices can be in different formats
+                if isinstance(vote["choice"], dict):
+                    choice = vote["choice"]
+                elif isinstance(vote["choice"], int) or isinstance(vote["choice"], str):
+                    choice = {vote["choice"]: 1}
+                elif isinstance(vote["choice"], list):
+                    choice = {c: 1 for c in vote["choice"]}
+                else:
+                    raise ValueError(
+                        f"""Unhandled choice type: {type(vote["choice"])} \n {vote["choice"]}"""
+                    )
+
+                # Sometimes proposals are None -> Handle this
+                if vote["proposal"] is not None:
+                    proposalid = vote["proposal"]["id"]
+                else:
+                    proposalid = None
+
+                # Add new lines for all the choice combinations
+                for chc, pwr in choice.items():
+                    daolist.append((dao, voter, chc, pwr, proposalid))
 
 
-df = pd.DataFrame(daolist, columns=["dao", "voter"]).drop_duplicates()
-del daolist, fc
+df = pd.DataFrame(daolist, columns=["dao", "voter", "choice", "power", "proposalid"])
+del daolist
 
 # %%
 # Use parquet for more compression
-df.to_parquet(data_dir / output_file, compression="brotli", index=False)
+df.astype(str).to_parquet(data_dir / output_file, compression="brotli", index=False)
+
+# %%
+df.head().astype(str).info()
+# %%
