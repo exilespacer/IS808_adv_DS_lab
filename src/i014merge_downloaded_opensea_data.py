@@ -17,11 +17,9 @@ import sys
 os.chdir(projectfolder)  # For interactive testing
 sys.path.insert(0, "")  # Required for loading modules
 
-import time
 
 import pandas as pd
 from tqdm import tqdm
-import json
 
 from src.util import pd_read_json
 
@@ -42,19 +40,22 @@ df = (
     pd.concat(coll, axis=0)
     .explode("collections")
     .dropna()
+    # Convert to float: Otherwise we get overflow errors, because some people hold insane amounts of their own NFTs (10000000000000000000000)
+    # E.g. here: https://opensea.io/assets/ethereum/0xdd63a2d8b2add0709f65b0e7afa19bf95d287b1c/1
+    # This causes problems when exporting to parquet files
     .assign(
         slug=lambda x: x["collections"].apply(lambda xx: xx["slug"]),
         owned_asset_count=lambda x: x["collections"].apply(
-            lambda xx: xx["owned_asset_count"]
+            lambda xx: float(xx["owned_asset_count"])
+        ),
+        primary_asset_contracts=lambda x: x["collections"].apply(
+            lambda xx: xx["primary_asset_contracts"]
         ),
     )
     .drop("collections", axis=1)
+    .explode("primary_asset_contracts")
     .reset_index(drop=True)
 )
-# Otherwise we get overflow errors, because some people hold insane amounts of their own NFTs (10000000000000000000000)
-# E.g. here: https://opensea.io/assets/ethereum/0xdd63a2d8b2add0709f65b0e7afa19bf95d287b1c/1
-# This causes problems when exporting to parquet files
-df["owned_asset_count"] = df["owned_asset_count"].astype(float)
 
 # %%
 # Use parquet for more compression
