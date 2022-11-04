@@ -45,23 +45,27 @@ df_dao_voters = pd.read_parquet(
 # %%
 df_by_voters = df_dao_voters.set_index("voter").sort_index()
 df_by_voters = df_by_voters.loc[df_by_voters.index.isin(voters_with_nfts)]
-relevant_voters = sorted(set(df_by_voters.index))
 
+lookup_dict = (
+    df_by_voters.groupby("voter").agg({"dao": lambda x: set(x)}).iloc[:, 0].to_dict()
+)
+del df_by_voters, voters_with_nfts
 # %%
 _coll = {}
-for voter, group in tqdm(df_by_voters.groupby("voter")):
-    daos = set(group["dao"])
+for voter, daos in tqdm(lookup_dict.items()):
 
-    for othervoter in tqdm(relevant_voters, leave=False):
-        if othervoter != voter:
-            otherdaos = set(df_by_voters.loc[[othervoter], "dao"])
+    for othervoter in lookup_dict.keys():
+
+        key = tuple(sorted([voter, othervoter]))
+
+        if othervoter != voter and not key in _coll.keys():
+            otherdaos = lookup_dict[othervoter]
 
             n_shared_daos = len(daos & otherdaos)
 
-            key = tuple(sorted([voter, othervoter]))
-
-            if not key in _coll.keys():
-                _coll[key] = n_shared_daos
+            _coll[key] = n_shared_daos
 
 
+# %%
+pd.DataFrame(_coll)
 # %%
