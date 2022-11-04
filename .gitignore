@@ -3,6 +3,11 @@
 *.pq
 *.pickle
 
+*.png
+*.jpg
+*.svg
+*.pdf
+
 # !collections.json
 # !combined_members.json
 # !network_df.csv

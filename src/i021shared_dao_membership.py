@@ -21,10 +21,7 @@ sys.path.insert(0, "")  # Required for loading modules
 
 
 import pandas as pd
-import numpy as np
-from scipy.sparse import coo_matrix
 from tqdm import tqdm
-import dask.dataframe as dd
 import itertools
 import collections
 import pickle
@@ -40,7 +37,10 @@ minimum_number_of_votes = 15
 minimum_number_of_nfts = 10
 
 # %%
-if not (data_dir / shared_daos_between_voters_pickle).is_file():
+if (
+    not (data_dir / shared_daos_between_voters_pickle).is_file()
+    and not (data_dir / shared_daos_between_voters).is_file()
+):
     print("Rerunning creation")
     voters_with_nfts = (
         pd.read_parquet(
@@ -112,26 +112,29 @@ if not (data_dir / shared_daos_between_voters_pickle).is_file():
     # Dump the results into a file to preserve data if running out of memory
     with open(data_dir / shared_daos_between_voters_pickle, "wb") as f:
         pickle.dump(counter, f)
-else:
-    print("Loading existing pickle")
+
+elif (data_dir / shared_daos_between_voters_pickle).is_file() and not (
+    data_dir / shared_daos_between_voters
+).is_file():
+    print("Loading existing pickle into DataFrame")
     with open(data_dir / shared_daos_between_voters_pickle, "rb") as f:
-        counter = pickle.load(f)
+        df = pd.DataFrame.from_dict(
+            pickle.load(f), orient="index", columns=["nshareddaos"]
+        ).reset_index()
 
-
-# %%
-if not (data_dir / shared_daos_between_voters).is_file() or True:
-    print("Loading into DataFrame")
-    df = pd.DataFrame.from_dict(
-        counter, orient="index", columns=["nshareddaos"]
-    ).reset_index()
+    # Split up the tuple of voter pairs into separate columns
     df[["voter1", "voter2"]] = pd.DataFrame(df["index"].tolist(), index=df.index)
+    # Clean up
     df = df.drop("index", axis=1).loc[:, ["voter1", "voter2", "nshareddaos"]]
 
     print("Exporting to parquet")
     df.to_parquet(
         data_dir / shared_daos_between_voters, compression="brotli", index=False
     )
+    # Delete the pickle file
     (data_dir / shared_daos_between_voters_pickle).unlink()
-# %%
-df["nshareddaos"].mean()
+
+else:
+    print("Loading from parquet")
+    df = pd.read_parquet(data_dir / shared_daos_between_voters)
 # %%
