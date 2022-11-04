@@ -1,6 +1,7 @@
 *.csv
 *.json
 *.pq
+*.pickle
 
 # !collections.json
 # !combined_members.json
