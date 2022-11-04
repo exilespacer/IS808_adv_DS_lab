@@ -24,34 +24,54 @@ import pandas as pd
 import numpy as np
 from scipy.sparse import coo_matrix
 from tqdm import tqdm
+import dask.dataframe as dd
+import itertools
+import collections
 
 # %%
 data_dir = projectfolder / "data"
 dao_voter_mapping = "dao_voter_mapping.pq"
 opensea_downloads = "opensea_collections.pq"
+
+minimum_number_of_votes = 10
+minimum_number_of_nfts = 10
+
 # %%
-voters_with_nfts = set(
-    pd.read_parquet(data_dir / opensea_downloads, columns=["requestedaddress"])
+voters_with_nfts = (
+    pd.read_parquet(data_dir / opensea_downloads, columns=["requestedaddress", "slug"])
     .drop_duplicates()
-    .iloc[:, 0]
+    .groupby("requestedaddress")
+    .size()
+)
+voters_with_nfts = set(
+    voters_with_nfts[voters_with_nfts > minimum_number_of_nfts].index
 )
 
-
 df_dao_voters = pd.read_parquet(
-    data_dir / dao_voter_mapping, columns=["dao", "voter"]
+    data_dir / dao_voter_mapping, columns=["dao", "voter", "proposalid"]
 ).drop_duplicates()
 
+# Get the number of proposals for which a voter voted
 
-# %%
-df_by_voters = df_dao_voters.set_index("voter").sort_index()
-df_by_voters = df_by_voters.loc[df_by_voters.index.isin(voters_with_nfts)]
+nproposals = df_dao_voters.groupby(["voter"]).size()
+voters_with_enough_votes = set(nproposals[nproposals >= minimum_number_of_votes].index)
+
+relevant_voters = voters_with_nfts & voters_with_enough_votes
+
+print(
+    f"Number of voters: {len(relevant_voters)} => {len(relevant_voters)**2/2/1e9:.2f} billion combinations"
+)
+
+df_by_voters = df_dao_voters.drop("proposalid", axis=1).set_index("voter").sort_index()
+df_by_voters = df_by_voters.loc[df_by_voters.index.isin(relevant_voters)]
 
 lookup_dict = (
     df_by_voters.groupby("voter").agg({"dao": lambda x: set(x)}).iloc[:, 0].to_dict()
 )
-del df_by_voters, voters_with_nfts
+# del df_by_voters, voters_with_nfts, voters_with_enough_votes, relevant_voters
 # %%
 _coll = {}
+counter = collections.Counter()
 for voter, daos in tqdm(lookup_dict.items()):
 
     for othervoter in lookup_dict.keys():
@@ -68,4 +88,25 @@ for voter, daos in tqdm(lookup_dict.items()):
 
 # %%
 pd.DataFrame(_coll)
+# %%
+sys.getsizeof(_coll) / 1e6
+# %%
+len(lookup_dict.keys()) ** 2 / 2 / 1e9
+# %%
+len(voters_with_nfts), len(voters_with_enough_votes), len(
+    voters_with_nfts & voters_with_enough_votes
+)
+
+# %%
+nproposals[nproposals >= 3]
+# %%
+nproposals.value_counts().sort_index().iloc[:10].plot.line(logy=False)
+# %%
+dd.read_parquet(data_dir / opensea_downloads).head()
+# %%
+
+# %%
+counter = collections.Counter()
+# %%
+counter.update([("a", "b")])
 # %%
