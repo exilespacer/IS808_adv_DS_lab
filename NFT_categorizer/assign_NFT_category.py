@@ -75,23 +75,35 @@ def get_data_y_X(use_cached = True):
     return (df_y, df_X)
 
 def train_knn_classifier(y_train, X_train):
-    from sklearn.preprocessing import StandardScaler
     from sklearn.neighbors import KNeighborsClassifier
-    # Feature Scaling
-    sc = StandardScaler()
-    X_train = sc.fit_transform(X_train)
-    X_test = sc.transform(X_test)
 
     # Training the K-NN model on the Training set
     classifier = KNeighborsClassifier(n_neighbors = 6, metric = 'minkowski', p = 2)
     classifier.fit(X_train, y_train)
     joblib.dump(classifier, folder/"knn.joblib")
 
+def train_initial_knn_classifier() -> None:
+    df_y, df_X = get_data_y_X()
+    X = df_X.values
+    y = df_y.iloc[:, 0].values
+
+    # Splitting the dataset into the Training set and Test set
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20, random_state = 0)
+    X_train = transform_X(X_train)
+    train_knn_classifier(y_train, X_train)
+
 def load_knn_classifier():
-    classifier = joblib.laod(folder/"knn.joblib")
+    path = folder/"knn.joblib"
+    if not os.path.exists(path):
+        train_initial_knn_classifier()
+    classifier = joblib.load(path)
     return classifier
 
-
+def transform_X(X_train):
+    from sklearn.preprocessing import StandardScaler
+    sc = StandardScaler()
+    X_train = sc.fit_transform(X_train)
+    return X_train
 
 def main():
     pass
@@ -108,12 +120,16 @@ if __name__ == '__main__':
     # Splitting the dataset into the Training set and Test set
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20, random_state = 0)
 
+    # transform
+    X_train = transform_X(X_train)
+    X_test = transform_X(X_test)
+    
     # train
     classifier = load_knn_classifier()
     y_pred = classifier.predict(X_test)
     labels = list(set(y_train))
-    x = (
+    df_confusion = (
         pd.DataFrame(confusion_matrix(y_test, y_pred, labels=labels), 
         index = labels, columns = labels)
     )
-    print(x)
+    print(df_confusion)
