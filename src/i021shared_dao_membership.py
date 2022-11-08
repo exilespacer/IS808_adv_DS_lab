@@ -26,6 +26,26 @@ import itertools
 import collections
 import pickle
 
+# Gets or creates a logger
+import logging
+
+logger = logging.getLogger(__name__)
+
+# set log level
+logger.setLevel(logging.INFO)
+
+# define file handler and set formatter
+stream_handler = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter(
+    "%(asctime)s : %(levelname)s : %(module)s - %(funcName)s : %(message)s"
+)
+stream_handler.setFormatter(formatter)
+
+# add handler to logger
+for handler in logger.handlers[:]:
+    logger.removeHandler(handler)
+logger.addHandler(stream_handler)
+
 # %%
 data_dir = projectfolder / "data"
 dao_voter_mapping = "dao_voter_mapping.pq"
@@ -33,41 +53,49 @@ opensea_downloads = "opensea_collections.pq"
 shared_daos_between_voters_pickle = "shared_daos_between_voters.pickle"
 shared_daos_between_voters = "shared_daos_between_voters.pq"
 
-minimum_number_of_votes = 15
-minimum_number_of_nfts = 10
 
 # %%
-if (
-    not (data_dir / shared_daos_between_voters_pickle).is_file()
-    and not (data_dir / shared_daos_between_voters).is_file()
+
+
+def get_input_data(
+    list_of_voters: list = [], minimum_number_of_votes=15, minimum_number_of_nfts=10
 ):
-    print("Rerunning creation")
-    voters_with_nfts = (
-        pd.read_parquet(
-            data_dir / opensea_downloads, columns=["requestedaddress", "slug"]
-        )
-        .drop_duplicates()
-        .groupby("requestedaddress")
-        .size()
-    )
-    voters_with_nfts = set(
-        voters_with_nfts[voters_with_nfts > minimum_number_of_nfts].index
-    )
+    """
+    Returns the input dictionary required for the next steps.
+    If no list_of_voters is passed, it will apply some default filters.
+    Otherwise it will use the provided list of voters without further limitation.
+    """
 
     df_dao_voters = pd.read_parquet(
         data_dir / dao_voter_mapping, columns=["dao", "voter", "proposalid"]
     ).drop_duplicates()
 
-    # Get the number of proposals for which a voter voted
+    if len(list_of_voters) == 0:
 
-    nproposals = df_dao_voters.groupby(["voter"]).size()
-    voters_with_enough_votes = set(
-        nproposals[nproposals >= minimum_number_of_votes].index
-    )
+        voters_with_nfts = (
+            pd.read_parquet(
+                data_dir / opensea_downloads, columns=["requestedaddress", "slug"]
+            )
+            .drop_duplicates()
+            .groupby("requestedaddress")
+            .size()
+        )
+        voters_with_nfts = set(
+            voters_with_nfts[voters_with_nfts > minimum_number_of_nfts].index
+        )
 
-    relevant_voters = voters_with_nfts & voters_with_enough_votes
+        # Get the number of proposals for which a voter voted
+        nproposals = df_dao_voters.groupby(["voter"]).size()
+        voters_with_enough_votes = set(
+            nproposals[nproposals >= minimum_number_of_votes].index
+        )
 
-    print(
+        relevant_voters = voters_with_nfts & voters_with_enough_votes
+
+    else:
+        relevant_voters = set(list_of_voters)
+
+    logger.info(
         f"Number of voters: {len(relevant_voters)} => {len(relevant_voters)**2/2/1e6:.2f} million combinations"
     )
 
@@ -85,13 +113,22 @@ if (
         .iloc[:, 0]
         .to_dict()
     )
-    del (
-        df_dao_voters,
-        df_by_voters,
-        voters_with_nfts,
-        voters_with_enough_votes,
-        relevant_voters,
-    )
+
+    # Export for Chia-Yi in debug mode
+    # pd.DataFrame(sorted(relevant_voters), columns=['voter']).to_parquet(
+    #     data_dir / "list_of_voters_at_minvote15_minnft10.pq", compression="brotli", index=False
+    # )
+
+    return lookup_dict
+
+
+def create_links(lookup_dict: dict):
+    """
+    Runs the compute-heavy task of iterating over all DAOs to find common voters.
+    Watch the RAM usage!
+    """
+
+    logger.info("Rerunning creation")
 
     counter = collections.Counter()
 
@@ -110,13 +147,19 @@ if (
             counter.update([(voter, othervoter)])
 
     # Dump the results into a file to preserve data if running out of memory
+    logger.info("Dumping the counter object to pickle")
     with open(data_dir / shared_daos_between_voters_pickle, "wb") as f:
         pickle.dump(counter, f)
 
-elif (data_dir / shared_daos_between_voters_pickle).is_file() and not (
-    data_dir / shared_daos_between_voters
-).is_file():
-    print("Loading existing pickle into DataFrame")
+    return counter
+
+
+def convert_pickle_to_parquet():
+    """
+    Loads the pickle created by create_links and converts it to a DataFrame that is stored as parquet
+    """
+
+    logger.info("Loading existing pickle into DataFrame")
     with open(data_dir / shared_daos_between_voters_pickle, "rb") as f:
         df = pd.DataFrame.from_dict(
             pickle.load(f), orient="index", columns=["nshareddaos"]
@@ -127,14 +170,71 @@ elif (data_dir / shared_daos_between_voters_pickle).is_file() and not (
     # Clean up
     df = df.drop("index", axis=1).loc[:, ["voter1", "voter2", "nshareddaos"]]
 
-    print("Exporting to parquet")
+    logger.info("Exporting to parquet")
     df.to_parquet(
         data_dir / shared_daos_between_voters, compression="brotli", index=False
     )
     # Delete the pickle file
     (data_dir / shared_daos_between_voters_pickle).unlink()
 
-else:
-    print("Loading from parquet")
+    return df
+
+
+def load_existing_parquet():
+    """
+    Loads precalculated results from an existing parquet file
+    """
+    logger.info("Loading from parquet")
     df = pd.read_parquet(data_dir / shared_daos_between_voters)
+
+    return df
+
+
+def main(list_of_voters: list = [], force: bool = False):
+    """
+    Performs all steps necessary to obtain results.
+    Pass force=True to recreate all files.
+    Pass list_of_voters to limit calculations to these voters.
+    """
+
+    if (
+        list_of_voters != []
+        and force is False
+        and (
+            (data_dir / shared_daos_between_voters_pickle).is_file()
+            or (data_dir / shared_daos_between_voters).is_file()
+        )
+    ):
+        logger.warning(
+            "You have provided a list of voters, but are not forcing a re-run. Is this what you want? Pass force=True to force."
+        )
+
+    # No intermediate or result files exist, or forced -> We need to re-run
+    if (
+        force is True
+        or not (data_dir / shared_daos_between_voters_pickle).is_file()
+        and not (data_dir / shared_daos_between_voters).is_file()
+    ):
+
+        # Creates the pickle with the results
+        create_links(get_input_data(list_of_voters))
+
+        # Converts everything to parquet
+        df = convert_pickle_to_parquet()
+
+    # Pickle exists -> convert to parquet
+    elif (data_dir / shared_daos_between_voters_pickle).is_file() and not (
+        data_dir / shared_daos_between_voters
+    ).is_file():
+        df = convert_pickle_to_parquet()
+
+    # Parquet exists
+    else:
+        df = load_existing_parquet()
+
+    return df
+
+
 # %%
+if __name__ == "__main__":
+    main()
