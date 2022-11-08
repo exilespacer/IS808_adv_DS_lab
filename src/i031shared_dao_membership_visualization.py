@@ -24,17 +24,16 @@ import pandas as pd
 from tqdm import tqdm
 import seaborn as sns
 from matplotlib import pyplot as plt
-
+from src.i021shared_dao_membership import main as load_data
 
 # %%
 data_dir = projectfolder / "data"
 image_dir = projectfolder / "20221108_Presentation/images"
-shared_daos_between_voters = "shared_daos_between_voters.pq"
 
 
 # %%
 
-df = pd.read_parquet(data_dir / shared_daos_between_voters)
+df = load_data()
 
 # %%
 # Histogram of the number of shared DAOs

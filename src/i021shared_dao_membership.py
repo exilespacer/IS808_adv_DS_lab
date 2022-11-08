@@ -32,7 +32,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # set log level
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARN)
 
 # define file handler and set formatter
 stream_handler = logging.StreamHandler(sys.stdout)
@@ -52,6 +52,9 @@ dao_voter_mapping = "dao_voter_mapping.pq"
 opensea_downloads = "opensea_collections.pq"
 shared_daos_between_voters_pickle = "shared_daos_between_voters.pickle"
 shared_daos_between_voters = "shared_daos_between_voters.pq"
+list_of_voters_file = "list_of_voters_used_for_shared_dao_calculations.pq"
+binary_similarity = "dao_voters_similarity_binary.pq"
+numeric_similarity = "dao_voters_similarity_numeric.pq"
 
 
 # %%
@@ -114,10 +117,10 @@ def get_input_data(
         .to_dict()
     )
 
-    # Export for Chia-Yi in debug mode
-    # pd.DataFrame(sorted(relevant_voters), columns=['voter']).to_parquet(
-    #     data_dir / "list_of_voters_at_minvote15_minnft10.pq", compression="brotli", index=False
-    # )
+    # Export list of voters
+    pd.DataFrame(sorted(relevant_voters), columns=["voter"]).to_parquet(
+        data_dir / list_of_voters_file, compression="brotli", index=False
+    )
 
     return lookup_dict
 
@@ -190,9 +193,60 @@ def load_existing_parquet():
     return df
 
 
-def main(list_of_voters: list = [], force: bool = False):
+# https://docs.python.org/3/library/itertools.html#itertools-recipes
+def batched(iterable, n):
+    "Batch data into lists of length n. The last batch may be shorter."
+    # batched('ABCDEFG', 3) --> ABC DEF G
+    if n < 1:
+        raise ValueError("n must be at least one")
+    it = iter(iterable)
+    while batch := list(itertools.islice(it, n)):
+        yield batch
+
+
+def export_regression_dataframes(batch_size: int = 25_000_000, **kwargs):
     """
-    Performs all steps necessary to obtain results.
+    Exports the numeric and binary full (i.e. non-sparse) regression dataframes.
+    """
+
+    logger.info("Exporting regression dataframe")
+    df = load_data(**kwargs).set_index(["voter1", "voter2"]).sort_index()
+
+    lov = pd.read_parquet(data_dir / list_of_voters_file)
+
+    for id, batch in tqdm(
+        enumerate(
+            batched(
+                itertools.combinations((vs := lov.iloc[:, 0].to_list()), 2), batch_size
+            )
+        ),
+        total=(len(vs) ** 2 / 2 - len(vs)) / batch_size,
+    ):
+
+        nframe = pd.DataFrame(
+            0,
+            index=pd.MultiIndex.from_tuples(batch, names=["voter1", "voter2"]),
+            columns=["_temp"],
+        ).sort_index()
+        nframe = nframe.join(df, how="left", on=["voter1", "voter2"])[
+            ["nshareddaos"]
+        ].fillna(0)
+
+        if id == 0:
+            nframe.to_parquet(data_dir / numeric_similarity, engine="fastparquet")
+            (nframe > 0).to_parquet(data_dir / binary_similarity, engine="fastparquet")
+        else:
+            nframe.to_parquet(
+                data_dir / numeric_similarity, engine="fastparquet", append=True
+            )
+            (nframe > 0).to_parquet(
+                data_dir / binary_similarity, engine="fastparquet", append=True
+            )
+
+
+def load_data(list_of_voters: list = [], force: bool = False):
+    """
+    Loads / creates the sparse data.
     Pass force=True to recreate all files.
     Pass list_of_voters to limit calculations to these voters.
     """
@@ -235,6 +289,17 @@ def main(list_of_voters: list = [], force: bool = False):
     return df
 
 
+def main(list_of_voters: list = [], force: bool = False):
+    """
+    Performs all steps necessary to obtain results.
+    Pass force=True to recreate all files.
+    Pass list_of_voters to limit calculations to these voters.
+    """
+
+    export_regression_dataframes(list_of_voters=list_of_voters, force=force)
+
+
 # %%
 if __name__ == "__main__":
+    logger.setLevel(logging.INFO)
     main()
