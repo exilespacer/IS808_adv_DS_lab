@@ -61,7 +61,7 @@ numeric_similarity = "dao_voters_similarity_numeric.pq"
 
 
 def get_input_data(
-    list_of_voters: list = [], minimum_number_of_votes=15, minimum_number_of_nfts=10
+    list_of_voters: list = [], minimum_number_of_votes=0, minimum_number_of_nfts=0
 ):
     """
     Returns the input dictionary required for the next steps.
@@ -233,13 +233,17 @@ def export_regression_dataframes(batch_size: int = 25_000_000, **kwargs):
         ].fillna(0)
 
         if id == 0:
-            nframe.to_parquet(data_dir / numeric_similarity, engine="fastparquet")
-            (nframe > 0).to_parquet(data_dir / binary_similarity, engine="fastparquet")
+            nframe.reset_index().to_parquet(
+                data_dir / numeric_similarity, engine="fastparquet"
+            )
+            (nframe > 0).reset_index().to_parquet(
+                data_dir / binary_similarity, engine="fastparquet"
+            )
         else:
-            nframe.to_parquet(
+            nframe.reset_index().to_parquet(
                 data_dir / numeric_similarity, engine="fastparquet", append=True
             )
-            (nframe > 0).to_parquet(
+            (nframe > 0).reset_index().to_parquet(
                 data_dir / binary_similarity, engine="fastparquet", append=True
             )
 
@@ -302,4 +306,10 @@ def main(list_of_voters: list = [], force: bool = False):
 # %%
 if __name__ == "__main__":
     logger.setLevel(logging.INFO)
-    main()
+
+    # Load list of voters from Chia-Yi
+    list_of_voters = (
+        pd.read_csv(data_dir / "voter_selected_20221108.csv").iloc[:, 0].to_list()
+    )
+
+    main(list_of_voters=list_of_voters, force=True)
