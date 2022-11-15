@@ -21,7 +21,6 @@ dao_voters_merged_with_opensea = "dao_voters_merged_with_opensea.pq"
 dao_voters_merged_with_opensea_folder = "dao_voters_merged_with_opensea"
 
 nft_prelabeled_category = cfg.projectfolder / "NFT_categorizer" / "data" / "raw" / "Data_API.csv"
-X_columns = ['Art', 'Collectible', 'Games', 'Metaverse', 'Other', 'Utility']
 
 def get_prelabeled_nft_category(only_unique_category = True):
     df_category = pd.read_csv(
