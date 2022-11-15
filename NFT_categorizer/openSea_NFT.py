@@ -10,15 +10,14 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 from NFT_categorizer.util import get_openSea_nft, get_prelabeled_nft_category
-import NFT_categorizer.util as model_util
 import NFT_categorizer.model_knn as knn
 model = knn.load_knn_classifier()
 
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, classification_report
 
 import config as cfg
 import os
-
+THRESHOLD = float(os.environ.get('THRESHOLD', '0.1'))
 
 def get_nft_category() -> pd.DataFrame:
     df_category = get_prelabeled_nft_category()
@@ -28,6 +27,34 @@ def get_path_dashboard():
     path = cfg.dir_nft_categorizer / "data" / "category_dashboard.csv"
     return path
 
+def get_slug_category(df_slug_contract, print_analysis = True):
+    df_category_nft = get_nft_category()
+    df_category = (
+        df_slug_contract
+        .merge(df_category_nft, how = 'left', on = 'Smart_contract')
+    )
+    df_category_slug = (
+        df_category
+        .loc[:, ['slug', 'Category']]
+        .dropna()
+        .drop_duplicates()
+    )
+    if print_analysis:
+        slugs = df_category.loc[lambda x: ~x.Category.isna()].slug.unique()
+        N = df_slug_contract.shape[0]
+        N_missing = df_slug_contract.Smart_contract.isna().sum()
+        N_contract = df_category.Smart_contract.nunique()
+        N_category_before = df_category_nft.Smart_contract.nunique()
+        N_category_after = df_category.loc[lambda x: x.slug.isin(slugs)].Smart_contract.nunique()
+        print(f'''
+        Obs: {N}
+        missing contract: {N_missing} ({100* N_missing/N:.2f} %)
+        total contract: {N_contract}
+        known category before pre-filing: {N_category_before} ({100*N_category_before/N_contract:.2f} %)
+        known category after pre-filing: {N_category_after} ({100*N_category_after/N_contract:.2f} %)
+        ''')
+    return df_category_slug
+    
 def get_dashboard(used_cached = True) -> pd.DataFrame:    
     path = get_path_dashboard()
     if (not os.path.exists(path)) or (not used_cached):
@@ -38,11 +65,17 @@ def get_dashboard(used_cached = True) -> pd.DataFrame:
                 'requestedaddress': 'owner'
             })
         )
-        df_category = get_nft_category()
 
+        df_slug_contract = (
+            df_smart_contact
+            .loc[:, ['slug', 'Smart_contract']]
+            .drop_duplicates()
+        )
+        df_category_slug = get_slug_category(df_slug_contract)
+        
         df_owner_portfolio = (
             df_smart_contact
-            .merge(df_category, how = 'left', on = 'Smart_contract')
+            .merge(df_category_slug, how = 'left', on = 'slug')
             .assign(N_slug = lambda x: x.groupby(['slug', 'owner']).owned_asset_count.transform('sum'))
             
             .sort_values('Category')
@@ -50,13 +83,14 @@ def get_dashboard(used_cached = True) -> pd.DataFrame:
         )
         df_owner_portfolio = (
             df_owner_portfolio
+            .assign(is_true_category = lambda x: ~x.Category.isna())
             .assign(Category = lambda x: x.Category.fillna('Unknown'))
         )
         df_owner_portfolio.to_csv(path, index = False)
         
     df_owner_portfolio = (
         pd.read_csv(path)
-        .loc[:, ['owner', 'slug', 'Smart_contract', 'Category']]
+        .loc[:, ['owner', 'slug', 'Smart_contract', 'Category', 'is_true_category']]
         .drop_duplicates()
     )
     return df_owner_portfolio
@@ -96,7 +130,7 @@ def get_representative_portfolio(
     df_owner_portfolio:pd.DataFrame, 
     threshold_quantile:float = 0.1
 ) -> pd.DataFrame:
-    q = df_owner_portfolio.Unknown.quantile(threshold_quantile)
+    q = df_owner_portfolio.Unknown.pipe(lambda x: x[x > 0]).quantile(threshold_quantile)
     df = (
         df_owner_portfolio
         .loc[lambda x: x.Unknown < q]
@@ -121,8 +155,8 @@ def has_Unknown(df_owner_portfolio_category):
 def get_contract_ownership_structure(df_owner_portfolio_category, ignore_unknown = True):
     df = (
         df_owner_portfolio_category
-        .loc[:, ['Smart_contract', 'Category', 'Art', 'Collectible', 'Games', 'Metaverse', 'Other', 'Utility', 'Unknown']]
-        .groupby(['Smart_contract', 'Category'])
+        .loc[:, ['Smart_contract', 'Category', 'is_true_category', 'Art', 'Collectible', 'Games', 'Metaverse', 'Other', 'Utility', 'Unknown']]
+        .groupby(['Smart_contract', 'Category', 'is_true_category'])
         .mean()
     )
     if ignore_unknown:
@@ -134,15 +168,11 @@ def get_contract_ownership_structure(df_owner_portfolio_category, ignore_unknown
     return df
 
 def get_predicted_category(df_contract_ownership_structure):
-    df_X = (
-        df_contract_ownership_structure
-        .loc[:, model_util.X_columns]
-    )
-    
-    y_pred = knn.knn_predict(model, df_X.values)
+    X = knn.transform_X_from_dataframe(df_contract_ownership_structure)
+    y_pred = knn.predict(model, X)
 
     df_predict = (
-        df_X
+        df_contract_ownership_structure
         .index.to_frame().reset_index(drop = True)
         .assign(Predicted = y_pred)
     )
@@ -181,23 +211,24 @@ def get_selected_voters(quantile_unknown = 0.25):
 def get_precision(df_predicted_category):
     df = (
         df_predicted_category
-        .loc[lambda x: x.Category != 'Unknown']
+        .loc[lambda x: x.is_true_category]
         .assign(correct = lambda x: x.Category == x.Predicted)
     )
     precision = df.correct.sum() / df.shape[0]
     
     df_stat = pd.DataFrame(
-        confusion_matrix(df.Category, df.Predicted),
-        index = model_util.X_columns,
-        columns = model_util.X_columns,
+        confusion_matrix(df.Category, df.Predicted, labels = knn.X_columns),
+        index = knn.X_columns,
+        columns = knn.X_columns,
     )
-    df_stat.pipe(print)
+    logging.info(df_stat.to_string())
+    logging.info(f'\n{classification_report(df.Category, df.Predicted)}')
     return precision
 
 def main():
     max_n_iterations = 10
     df_dashboard = get_dashboard()
-    threshold_quantile = 0.1
+    threshold_quantile = THRESHOLD
     for i in range(max_n_iterations):
         df_owner_portfolio = get_owner_portfolio(df_dashboard)
         df_representative_portfolio = get_representative_portfolio(df_owner_portfolio, threshold_quantile = threshold_quantile)
@@ -206,17 +237,16 @@ def main():
             break
         df_contract_ownership_structure = get_contract_ownership_structure(df_owner_portfolio_category)
         df_predicted_category = get_predicted_category(df_contract_ownership_structure)
-        precision = get_precision(df_predicted_category)
-        if precision > 0.6:
+        correctness = get_precision(df_predicted_category)
+        logging.info(f'''Iteration-{i} | correct-{correctness*100:.2f} | threshold-{threshold_quantile} | known-{df_predicted_category.is_true_category.sum()} | unknown-{(df_predicted_category.is_true_category == False).sum()} | N_added-{(df_predicted_category.Category == 'Unknown').sum()}''')    
+        if correctness > 0.5:
             # PROBLEMATIC: mostly assign "Other"
             df_dashboard = update_category(df_dashboard, df_predicted_category) 
-            threshold_quantile = 0.1
+            threshold_quantile = THRESHOLD
             continue
         threshold_quantile = threshold_quantile * 0.5
-        logging.info(f'''
-        Iteration {i} | precision ({precision*100:.2f} %) | additional category ({(df_predicted_category.Category == 'Unknown').sum()})
-        ''')    
     df_dashboard.to_csv(cfg.dir_nft_categorizer / 'data' / 'category_predicted.csv', index = False)
 
 if __name__ == '__main__':
+    # time(THRESHOLD=0.1 python -m NFT_categorizer.openSea_NFT) >& NFT_categorizer/openSea_NFT.log
     main()
