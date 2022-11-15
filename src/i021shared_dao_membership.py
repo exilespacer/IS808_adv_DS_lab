@@ -209,7 +209,6 @@ def export_regression_dataframes(batch_size: int = 25_000_000, **kwargs):
     Exports the numeric and binary full (i.e. non-sparse) regression dataframes.
     """
 
-    logger.info("Exporting regression dataframe")
     df = load_data(**kwargs).set_index(["voter1", "voter2"]).sort_index()
 
     lov = pd.read_parquet(data_dir / list_of_voters_file)

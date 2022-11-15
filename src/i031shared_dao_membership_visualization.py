@@ -23,8 +23,11 @@ sys.path.insert(0, "")  # Required for loading modules
 import pandas as pd
 from tqdm import tqdm
 import seaborn as sns
+
+sns.set_theme()
 from matplotlib import pyplot as plt
-from src.i021shared_dao_membership import main as load_data
+from src.i021shared_dao_membership import numeric_similarity as sourcefile
+from src.i021shared_dao_membership import list_of_voters_file
 
 # %%
 data_dir = projectfolder / "data"
@@ -33,21 +36,74 @@ image_dir = projectfolder / "20221108_Presentation/images"
 
 # %%
 
-df = load_data()
+df = pd.read_parquet(data_dir / sourcefile)
 
 # %%
 # Histogram of the number of shared DAOs
-ax = sns.histplot(df, x="nshareddaos", bins=100, log_scale=(False, True))
+col = "nshareddaos"
+ax = sns.histplot(df, x=col, bins=50, log_scale=(False, False))
 ax.set_xlabel("Number of shared DAOs")
 ax.set_ylabel("Number of voter pairs")
+
+for i, bar in enumerate(ax.patches):
+    height = bar.get_height()
+
+    if height == 0:
+        continue
+
+    ax.text(
+        x=bar.get_x()
+        + (
+            bar.get_width() / 2
+        ),  # x-coordinate position of data label, padded to be in the middle of the bar
+        y=height + 100,  # y-coordinate position of data label, padded 0.2 above bar
+        s="{:.0f}".format(height),  # data label, formatted to ignore decimals
+        ha="center",
+    )  # sets horizontal alignment (ha) to center
+
 plt.savefig(image_dir / "histogram_shared_daos.png", bbox_inches="tight")
 
 # %%
+
+# Get the number of possible pairs
 total_possible_voter_pairs = (
-    npossiblecombinations := len(set(df["voter1"]) | set(df["voter2"]))
-) ** 2 / 2 - npossiblecombinations
-n_nonzero_shared_daos = len(df)
+    (nuniquevoters := len(pd.read_parquet(data_dir / list_of_voters_file))) ** 2
+    - nuniquevoters
+) / 2
+
+# Get the number of voters that share at least one DAO
+n_nonzero_shared_daos = len(df.query("nshareddaos > 0"))
+
 print(
     f"{n_nonzero_shared_daos/total_possible_voter_pairs:.2%} of possible voter pairs actually have a shared DAO."
 )
+
+# %%
+total_shared_df = (
+    df.groupby("voter1")["nshareddaos"]
+    .sum()
+    .add(df.groupby("voter2")["nshareddaos"].sum(), fill_value=0)
+)
+ax = sns.histplot(total_shared_df, bins=50, log_scale=(False, False))
+ax.set_xlabel("Number of shared DAOs with all other voters")
+ax.set_ylabel("Number of voters")
+
+for i, bar in enumerate(ax.patches):
+    height = bar.get_height()
+
+    if height == 0:
+        continue
+
+    ax.text(
+        x=bar.get_x()
+        + (
+            bar.get_width() / 2
+        ),  # x-coordinate position of data label, padded to be in the middle of the bar
+        y=height + 2,  # y-coordinate position of data label, padded 0.2 above bar
+        s="{:.0f}".format(height),  # data label, formatted to ignore decimals
+        ha="center",
+    )  # sets horizontal alignment (ha) to center
+
+plt.savefig(image_dir / "histogram_total_shared_daos.png", bbox_inches="tight")
+
 # %%
