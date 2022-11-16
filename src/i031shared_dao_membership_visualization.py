@@ -62,6 +62,8 @@ for i, bar in enumerate(ax.patches):
     )  # sets horizontal alignment (ha) to center
 
 plt.savefig(image_dir / "histogram_shared_daos.png", bbox_inches="tight")
+plt.show()
+plt.clf()
 
 # %%
 
@@ -105,5 +107,7 @@ for i, bar in enumerate(ax.patches):
     )  # sets horizontal alignment (ha) to center
 
 plt.savefig(image_dir / "histogram_total_shared_daos.png", bbox_inches="tight")
+plt.show()
+plt.clf()
 
 # %%
