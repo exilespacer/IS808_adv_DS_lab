@@ -1,6 +1,10 @@
+.*
 *.csv
 *.json
 *.pq
+*.parquet
+*.log
+*.joblib
 *.pickle
 
 *.png
