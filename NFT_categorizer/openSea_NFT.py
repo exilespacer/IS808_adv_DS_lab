@@ -229,7 +229,7 @@ def main():
     max_n_iterations = 10
     df_dashboard = get_dashboard()
     threshold_quantile = THRESHOLD
-    for i in range(max_n_iterations):
+    for i in range(max_n_iterations + 1):
         df_owner_portfolio = get_owner_portfolio(df_dashboard)
         df_representative_portfolio = get_representative_portfolio(df_owner_portfolio, threshold_quantile = threshold_quantile)
         df_owner_portfolio_category = get_owner_portfolio_category(df_dashboard, df_representative_portfolio)
