@@ -20,3 +20,4 @@ sys.path.insert(0, "")  # Required for loading modules
 
 dir_data = projectfolder / "data"
 dir_nft_categorizer = projectfolder / "NFT_categorizer"
+dir_similarity_category = projectfolder / "similarity_category"
