@@ -122,8 +122,15 @@ def create_binary_similarity_category(batch_size = 10**6):
         
 def main():
     df = load_similarity_category()
+    df_stats = (
+        df
+        .set_index(['voter1', 'voter2'])
+        .sum().to_frame('N_voter_pairs_coown_this_NFT')
+        .assign(pct_voter_pairs_coown_this_NFT = lambda x: 100*x.N_voter_pairs_coown_this_NFT.div(df.shape[0]))
+    )
+    df_stats.pipe(display)
+    df_stats.to_csv(dir_local_data / 'df_stats.csv')
     pass
 
 if __name__ == '__main__':
-    # time(python -m similarity_category.similarity_category) >& similarity_category/similarity_category.log
     main()
