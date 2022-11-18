@@ -1,0 +1,15 @@
+name: IS808
+channels:
+- anaconda
+- conda-forge
+dependencies:
+- python
+- pandas
+- numpy
+- pyarrow
+- fastparquet
+- more-itertools
+- networkx
+- pyvis
+- scikit-learn 
+- tqdm
