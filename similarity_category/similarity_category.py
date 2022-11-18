@@ -14,7 +14,8 @@ from more_itertools import chunked
 import os
 
 import config as cfg 
-data_dir = cfg.dir_similarity_category / "data"
+dir_local_data = cfg.dir_similarity_category / "data"
+path_similarity_category = cfg.dir_data / "similarity_by_category.pq"
 
 _parquet_kwargs = {
     "engine": "fastparquet",
@@ -22,10 +23,19 @@ _parquet_kwargs = {
     "index": False,
 }
 
-def get_df_category():
+def load_voter_combinations():
+    path_voter_combinations = cfg.dir_data / "dao_voters_similarity_binary.pq"
+    df = (
+        pd.read_parquet(path_voter_combinations, columns=['voter1', 'voter2'])
+        .drop_duplicates()
+    )
+    df = df.astype('category')
+    return df
+
+def load_voter_NFT_with_category():
     from similarity_category.util import get_openSea_nft
     # NFT category
-    df_labels = pd.read_csv(data_dir / "top20_NFT_labeling.csv")
+    df_labels = pd.read_csv(cfg.dir_data / "top20_NFT_labeling.csv")
 
     # raw NFT data
     df_smart_contact = (
@@ -43,18 +53,49 @@ def get_df_category():
         .merge(df_labels, on = ['slug'], how = 'left')
     )
 
+    df_smart_contact = df_smart_contact.astype({
+        'slug': 'category',
+        'smart_contract': 'category',
+        'voter': 'category',
+        'category': 'category',
+        'shares': 'int',
+    })
+    return df_smart_contact
+
+def compute_similarity_category():
+    df = load_voter_combinations()
+
     df_category = (
-        df_smart_contact
-        .groupby(['voter', 'category'])
-        .shares.sum()
-        .reset_index()
+        load_voter_NFT_with_category()
+        .loc[:, ['voter', 'category']]
+        .dropna()
+        .drop_duplicates()
     )
-    return df_category
 
-def main(batch_size = 10**4):
-    df_category = get_df_category()
+    for category, df_sub in df_category.groupby('category'):
+        voters_in = df_sub.voter.unique()
+        df[f'similarity_{category}'] = df.voter1.isin(voters_in) * df.voter2.isin(voters_in)
+    
+    df.to_parquet(path_similarity_category, **_parquet_kwargs)
+    logging.info('Finish compute_similarity_category')
 
-    for f in data_dir.glob('*.pq'):
+def load_similarity_category():
+    if not os.path.exists(path_similarity_category):
+        compute_similarity_category()
+    df = pd.read_parquet(path_similarity_category)
+    df = df.astype({'voter1': 'category', 'voter2': 'category'})
+    return df
+
+def test(batch_size = 10**6):
+    voters = list(range(10**5))
+    voter_combinations = combinations(voters, 2)
+    for data in tqdm(chunked(voter_combinations, batch_size)):
+        pass
+
+def create_binary_similarity_category(batch_size = 10**6):
+    df_category = load_similarity_category()
+
+    for f in dir_local_data.glob('*.pq'):
         os.remove(f)
 
     categories = ('Utility', 'Metaverse', 'Collectible', 'Games', 'Art')
@@ -68,19 +109,20 @@ def main(batch_size = 10**4):
         voters = sorted(df_sub.voter.unique())
         logging.info(f'Start Category - {category}: #(voters) = {len(voters)}')
 
-        # voters = voters[:10**6] #TODO
         voter_combinations = combinations(voters, 2)
         for data in tqdm(chunked(voter_combinations, batch_size)):
-            # batch
             df_out = (
                 pd.DataFrame(list(data), columns = ['voter1', 'voter2'])
                 .astype('category')
                 .assign(dummy = True)
             )
-            append = True if os.path.exists(data_dir / binary_similarity) else False
-            df_out.to_parquet(data_dir / binary_similarity, append = append, **_parquet_kwargs)
+            append = True if os.path.exists(dir_local_data / binary_similarity) else False
+            df_out.to_parquet(dir_local_data / binary_similarity, append = append, **_parquet_kwargs)
         logging.info(f'Finish Category - {category}')
         
+def main():
+    df = load_similarity_category()
+    pass
 
 if __name__ == '__main__':
     # time(python -m similarity_category.similarity_category) >& similarity_category/similarity_category.log
