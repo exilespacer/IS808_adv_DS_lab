@@ -255,17 +255,25 @@ def export_regression_dataframes(batch_size: int = 25_000_000, **kwargs):
 
         if id == 0:
             nframe.reset_index().to_parquet(
-                data_dir / numeric_similarity, engine="fastparquet"
+                data_dir / numeric_similarity,
+                compression="brotli",
+                engine="fastparquet",
             )
             (nframe > 0).reset_index().to_parquet(
-                data_dir / binary_similarity, engine="fastparquet"
+                data_dir / binary_similarity, compression="brotli", engine="fastparquet"
             )
         else:
             nframe.reset_index().to_parquet(
-                data_dir / numeric_similarity, engine="fastparquet", append=True
+                data_dir / numeric_similarity,
+                compression="brotli",
+                engine="fastparquet",
+                append=True,
             )
             (nframe > 0).reset_index().to_parquet(
-                data_dir / binary_similarity, engine="fastparquet", append=True
+                data_dir / binary_similarity,
+                compression="brotli",
+                engine="fastparquet",
+                append=True,
             )
 
 
