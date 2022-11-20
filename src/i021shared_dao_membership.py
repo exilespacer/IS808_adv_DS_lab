@@ -55,13 +55,17 @@ shared_daos_between_voters = "shared_daos_between_voters.pq"
 list_of_voters_file = "list_of_voters_used_for_shared_dao_calculations.pq"
 binary_similarity = "dao_voters_similarity_binary.pq"
 numeric_similarity = "dao_voters_similarity_numeric.pq"
+top_20_nfts_list = "top20_NFT_labeling.csv"
 
 
 # %%
 
 
 def get_input_data(
-    list_of_voters: list = [], minimum_number_of_votes=0, minimum_number_of_nfts=0
+    list_of_voters: list = [],
+    minimum_number_of_votes=0,
+    minimum_number_of_nfts=0,
+    nft_projects_csv_file=None,
 ):
     """
     Returns the input dictionary required for the next steps.
@@ -75,17 +79,28 @@ def get_input_data(
 
     if len(list_of_voters) == 0:
 
-        voters_with_nfts = (
-            pd.read_parquet(
-                data_dir / opensea_downloads, columns=["requestedaddress", "slug"]
-            )
-            .drop_duplicates()
-            .groupby("requestedaddress")
-            .size()
+        logger.info(
+            f"Min NFT: {minimum_number_of_nfts} Min votes: {minimum_number_of_votes} File provided: {nft_projects_csv_file is not None}"
         )
+
+        nft_data = pd.read_parquet(
+            data_dir / opensea_downloads, columns=["requestedaddress", "slug"]
+        ).drop_duplicates()
+
+        voters_with_nfts = nft_data.groupby("requestedaddress").size()
         voters_with_nfts = set(
             voters_with_nfts[voters_with_nfts > minimum_number_of_nfts].index
         )
+
+        if nft_projects_csv_file is not None:
+            voters_with_specific_nft_projects = set(
+                pd.merge(
+                    nft_data,
+                    pd.read_csv(data_dir / nft_projects_csv_file),
+                    on="slug",
+                    how="inner",
+                )["requestedaddress"]
+            )
 
         # Get the number of proposals for which a voter voted
         nproposals = df_dao_voters.groupby(["voter"]).size()
@@ -93,7 +108,14 @@ def get_input_data(
             nproposals[nproposals >= minimum_number_of_votes].index
         )
 
-        relevant_voters = voters_with_nfts & voters_with_enough_votes
+        if nft_projects_csv_file is not None:
+            relevant_voters = (
+                voters_with_nfts
+                & voters_with_enough_votes
+                & voters_with_specific_nft_projects
+            )
+        else:
+            relevant_voters = voters_with_nfts & voters_with_enough_votes
 
     else:
         relevant_voters = set(list_of_voters)
@@ -247,7 +269,7 @@ def export_regression_dataframes(batch_size: int = 25_000_000, **kwargs):
             )
 
 
-def load_data(list_of_voters: list = [], force: bool = False):
+def load_data(list_of_voters: list = [], force: bool = False, **kwargs):
     """
     Loads / creates the sparse data.
     Pass force=True to recreate all files.
@@ -274,7 +296,7 @@ def load_data(list_of_voters: list = [], force: bool = False):
     ):
 
         # Creates the pickle with the results
-        create_links(get_input_data(list_of_voters))
+        create_links(get_input_data(list_of_voters, **kwargs))
 
         # Converts everything to parquet
         df = convert_pickle_to_parquet()
@@ -292,14 +314,16 @@ def load_data(list_of_voters: list = [], force: bool = False):
     return df
 
 
-def main(list_of_voters: list = [], force: bool = False):
+def main(list_of_voters: list = [], force: bool = False, **kwargs):
     """
     Performs all steps necessary to obtain results.
     Pass force=True to recreate all files.
     Pass list_of_voters to limit calculations to these voters.
     """
 
-    export_regression_dataframes(list_of_voters=list_of_voters, force=force)
+    export_regression_dataframes(list_of_voters=list_of_voters, force=force, **kwargs)
+
+    logger.info("Done")
 
 
 # %%
@@ -307,8 +331,15 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
     # Load list of voters from Chia-Yi
-    list_of_voters = (
-        pd.read_csv(data_dir / "voter_selected_20221108.csv").iloc[:, 0].to_list()
-    )
+    # list_of_voters = (
+    #     pd.read_csv(data_dir / "voter_selected_20221108.csv").iloc[:, 0].to_list()
+    # )
 
-    main(list_of_voters=list_of_voters, force=True)
+    # main(list_of_voters=list_of_voters, force=True)
+
+    main(
+        force=True,
+        minimum_number_of_votes=25,
+        minimum_number_of_nfts=20,
+        nft_projects_csv_file=top_20_nfts_list,
+    )
