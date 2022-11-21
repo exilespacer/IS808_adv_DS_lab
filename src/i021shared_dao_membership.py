@@ -61,7 +61,7 @@ top_20_nfts_list = "top20_NFT_labeling.csv"
 # %%
 
 
-def get_input_data(
+def get_relevant_voters(
     list_of_voters: list = [],
     minimum_number_of_votes=0,
     minimum_number_of_nfts=0,
@@ -124,11 +124,22 @@ def get_input_data(
         f"Number of voters: {len(relevant_voters)} => {len(relevant_voters)**2/2/1e6:.2f} million combinations"
     )
 
+    return relevant_voters
+
+
+def get_input_data(
+    in_df: pd.DataFrame,
+    relevant_voters=None,
+    **kwargs,
+):
+    if not isinstance(relevant_voters, set):
+        relevant_voters = get_relevant_voters(**kwargs)
+    else:
+        logger.info("Using set of provided relevant voters")
+
     # Reduce the voters to the relevant ones
-    df_by_voters = (
-        df_dao_voters.drop("proposalid", axis=1).set_index("voter").sort_index()
-    )
-    df_by_voters = df_by_voters.loc[df_by_voters.index.isin(relevant_voters)]
+
+    df_by_voters = in_df.loc[df_by_voters.index.isin(relevant_voters)]
 
     # Create the main iteration input dictionary
     lookup_dict = (
@@ -179,28 +190,26 @@ def create_links(lookup_dict: dict):
     return counter
 
 
-def convert_pickle_to_parquet():
+def convert_pickle_to_parquet(_in, _out, columnname="nshareddaos"):
     """
     Loads the pickle created by create_links and converts it to a DataFrame that is stored as parquet
     """
 
     logger.info("Loading existing pickle into DataFrame")
-    with open(data_dir / shared_daos_between_voters_pickle, "rb") as f:
+    with open(data_dir / _in, "rb") as f:
         df = pd.DataFrame.from_dict(
-            pickle.load(f), orient="index", columns=["nshareddaos"]
+            pickle.load(f), orient="index", columns=[columnname]
         ).reset_index()
 
     # Split up the tuple of voter pairs into separate columns
     df[["voter1", "voter2"]] = pd.DataFrame(df["index"].tolist(), index=df.index)
     # Clean up
-    df = df.drop("index", axis=1).loc[:, ["voter1", "voter2", "nshareddaos"]]
+    df = df.drop("index", axis=1).loc[:, ["voter1", "voter2", columnname]]
 
     logger.info("Exporting to parquet")
-    df.to_parquet(
-        data_dir / shared_daos_between_voters, compression="brotli", index=False
-    )
+    df.to_parquet(data_dir / _out, compression="brotli", index=False)
     # Delete the pickle file
-    (data_dir / shared_daos_between_voters_pickle).unlink()
+    (data_dir / _in).unlink()
 
     return df
 
@@ -304,16 +313,29 @@ def load_data(list_of_voters: list = [], force: bool = False, **kwargs):
     ):
 
         # Creates the pickle with the results
-        create_links(get_input_data(list_of_voters, **kwargs))
+
+        df_dao_voters = (
+            pd.read_parquet(data_dir / dao_voter_mapping, columns=["dao", "voter"])
+            .drop_duplicates()
+            .set_index("voter")
+            .sort_index()
+        )
+        create_links(
+            get_input_data(df_dao_voters, list_of_voters=list_of_voters, **kwargs)
+        )
 
         # Converts everything to parquet
-        df = convert_pickle_to_parquet()
+        df = convert_pickle_to_parquet(
+            shared_daos_between_voters_pickle, shared_daos_between_voters
+        )
 
     # Pickle exists -> convert to parquet
     elif (data_dir / shared_daos_between_voters_pickle).is_file() and not (
         data_dir / shared_daos_between_voters
     ).is_file():
-        df = convert_pickle_to_parquet()
+        df = convert_pickle_to_parquet(
+            shared_daos_between_voters_pickle, shared_daos_between_voters
+        )
 
     # Parquet exists
     else:
