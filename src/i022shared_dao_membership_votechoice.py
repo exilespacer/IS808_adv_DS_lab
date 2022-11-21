@@ -86,7 +86,7 @@ if __name__ == "__main__":
     }  # It's impossible to have a pair with less than 2 voters
     logger.info("Input data generated, starting link creation")
 
-    create_links(lookup_dict)
+    x = create_links(lookup_dict)
     convert_pickle_to_parquet(
         "shared_daos_between_voters.pickle",
         covoting_between_voters_file,
@@ -94,3 +94,4 @@ if __name__ == "__main__":
     )
 
     logger.info("Done")
+# %%

@@ -28,10 +28,11 @@ sns.set_theme()
 from matplotlib import pyplot as plt
 from src.i021shared_dao_membership import numeric_similarity as sourcefile
 from src.i021shared_dao_membership import list_of_voters_file
+from src.i022shared_dao_membership_votechoice import covoting_between_voters_file
 
 # %%
 data_dir = projectfolder / "data"
-image_dir = projectfolder / "20221108_Presentation/images"
+image_dir = projectfolder / "images"
 
 
 # %%
@@ -107,6 +108,36 @@ for i, bar in enumerate(ax.patches):
     )  # sets horizontal alignment (ha) to center
 
 plt.savefig(image_dir / "histogram_total_shared_daos.png", bbox_inches="tight")
+plt.show()
+plt.clf()
+
+# %%
+
+df_covoting = pd.read_parquet(data_dir / covoting_between_voters_file)
+# %%
+# Histogram of the number of shared choices
+col = "nsharedchoices"
+ax = sns.histplot(df_covoting, x=col, bins=10, log_scale=(False, True))
+ax.set_xlabel("Number of shared Proposal-Choices (non-zero)")
+ax.set_ylabel("Number of voter pairs")
+
+for i, bar in enumerate(ax.patches):
+    height = bar.get_height()
+
+    if height == 0:
+        continue
+
+    ax.text(
+        x=bar.get_x()
+        + (
+            bar.get_width() / 2
+        ),  # x-coordinate position of data label, padded to be in the middle of the bar
+        y=height + 100,  # y-coordinate position of data label, padded 0.2 above bar
+        s="{:.0f}".format(height),  # data label, formatted to ignore decimals
+        ha="center",
+    )  # sets horizontal alignment (ha) to center
+
+plt.savefig(image_dir / "histogram_shared_choices.png", bbox_inches="tight")
 plt.show()
 plt.clf()
 
