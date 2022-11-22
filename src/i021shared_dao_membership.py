@@ -177,7 +177,7 @@ def get_input_data(
     return lookup_dict
 
 
-def create_links(lookup_dict: dict):
+def create_links(lookup_dict: dict, dump_to_pickle: bool = True):
     """
     Runs the compute-heavy task of iterating over all DAOs to find common voters.
     Watch the RAM usage!
@@ -202,9 +202,10 @@ def create_links(lookup_dict: dict):
             counter.update([(voter, othervoter)])
 
     # Dump the results into a file to preserve data if running out of memory
-    logger.info("Dumping the counter object to pickle")
-    with open(data_dir / shared_daos_between_voters_pickle, "wb") as f:
-        pickle.dump(counter, f)
+    if dump_to_pickle is True:
+        logger.info("Dumping the counter object to pickle")
+        with open(data_dir / shared_daos_between_voters_pickle, "wb") as f:
+            pickle.dump(counter, f)
 
     return counter
 

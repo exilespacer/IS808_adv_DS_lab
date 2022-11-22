@@ -88,3 +88,4 @@ df.to_parquet(
 df.groupby("category").head(top_n).to_parquet(
     data_dir / opensea_categories_file.format(top_n), compression="brotli", index=False
 )
+# %%
