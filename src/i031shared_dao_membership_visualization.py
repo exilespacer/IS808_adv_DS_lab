@@ -142,3 +142,17 @@ plt.show()
 plt.clf()
 
 # %%
+
+# Get the number of possible pairs
+total_possible_voter_pairs = (
+    (nuniquevoters := len(pd.read_parquet(data_dir / list_of_voters_file))) ** 2
+    - nuniquevoters
+) / 2
+
+# Get the number of voters that share at least one DAO
+n_nonzero_shared_daos = len(df_covoting.query(f"{col} > 0"))
+
+print(
+    f"{n_nonzero_shared_daos/total_possible_voter_pairs:.2%} of possible voter pairs have covoted."
+)
+# %%

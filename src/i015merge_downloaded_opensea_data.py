@@ -27,6 +27,7 @@ from src.util import pd_read_json
 data_dir = projectfolder / "data"
 results_folder = data_dir / "opensea_downloaded"
 output_file = "opensea_collections.pq"
+opensea_categories_full_file = "opensea_categories_full.pq"
 
 # %%
 
@@ -59,6 +60,15 @@ df = (
 
 # %%
 # Use parquet for more compression
-df.to_parquet(data_dir / output_file, compression="brotli", index=False)
+all_voters = pd.read_parquet(data_dir / "all_voters_with_voterid.pq")
 
-# %%
+ndf = pd.merge(
+    df,
+    all_voters,
+    how="left",
+    left_on="requestedaddress",
+    right_on="requestedaddress",
+    validate="m:1",
+).loc[:, ["voterid", "slug", "owned_asset_count", "primary_asset_contracts"]]
+assert len(df) == len(ndf)
+ndf.to_parquet(data_dir / output_file, compression="brotli", index=False)

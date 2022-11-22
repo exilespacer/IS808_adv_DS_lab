@@ -70,7 +70,7 @@ if __name__ == "__main__":
     relevant_voters = get_relevant_voters(
         minimum_number_of_votes=25,
         minimum_number_of_nfts=20,
-        nft_projects_csv_file=top_20_nfts_list,
+        nft_projects=top_20_nfts_list,
     )
 
     d = (

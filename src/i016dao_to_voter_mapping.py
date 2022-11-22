@@ -68,4 +68,16 @@ del daolist
 
 # %%
 # Use parquet for more compression
-df.to_parquet(data_dir / output_file, compression="brotli", index=False)
+all_voters = pd.read_parquet(data_dir / "all_voters_with_voterid.pq")
+
+ndf = pd.merge(
+    df,
+    all_voters,
+    how="left",
+    left_on="voter",
+    right_on="requestedaddress",
+    validate="m:1",
+).loc[:, ["dao", "voterid", "choice", "power", "proposalid"]]
+assert len(df) == len(ndf)
+ndf.to_parquet(data_dir / output_file, compression="brotli", index=False)
+# %%

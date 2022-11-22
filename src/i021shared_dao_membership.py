@@ -65,7 +65,7 @@ def get_relevant_voters(
     list_of_voters: list = [],
     minimum_number_of_votes=0,
     minimum_number_of_nfts=0,
-    nft_projects_csv_file=None,
+    nft_projects=None,
 ):
     """
     Returns the input dictionary required for the next steps.
@@ -80,7 +80,7 @@ def get_relevant_voters(
     if len(list_of_voters) == 0:
 
         logger.info(
-            f"Min NFT: {minimum_number_of_nfts} Min votes: {minimum_number_of_votes} File provided: {nft_projects_csv_file is not None}"
+            f"Min NFT: {minimum_number_of_nfts} Min votes: {minimum_number_of_votes} File provided: {nft_projects is not None}"
         )
 
         nft_data = pd.read_parquet(
@@ -92,15 +92,34 @@ def get_relevant_voters(
             voters_with_nfts[voters_with_nfts > minimum_number_of_nfts].index
         )
 
-        if nft_projects_csv_file is not None:
+        if (
+            nft_projects is not None
+            and isinstance(nft_projects, str)
+            and nft_projects.endswith("csv")
+        ):
             voters_with_specific_nft_projects = set(
                 pd.merge(
                     nft_data,
-                    pd.read_csv(data_dir / nft_projects_csv_file),
+                    pd.read_csv(data_dir / nft_projects),
                     on="slug",
                     how="inner",
                 )["requestedaddress"]
             )
+        elif (
+            nft_projects is not None
+            and isinstance(nft_projects, str)
+            and nft_projects.endswith("pq")
+        ):
+            voters_with_specific_nft_projects = set(
+                pd.merge(
+                    nft_data,
+                    pd.read_parquet(data_dir / nft_projects),
+                    on="slug",
+                    how="inner",
+                )["requestedaddress"]
+            )
+        elif nft_projects is not None:
+            raise ValueError("Something provided for nft_project, but unhandled type")
 
         # Get the number of proposals for which a voter voted
         nproposals = df_dao_voters.groupby(["voter"]).size()
@@ -108,7 +127,7 @@ def get_relevant_voters(
             nproposals[nproposals >= minimum_number_of_votes].index
         )
 
-        if nft_projects_csv_file is not None:
+        if nft_projects is not None:
             relevant_voters = (
                 voters_with_nfts
                 & voters_with_enough_votes
