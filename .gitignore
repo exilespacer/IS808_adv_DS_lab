@@ -6,6 +6,7 @@
 *.log
 *.joblib
 *.pickle
+*.har
 
 *.png
 *.jpg
