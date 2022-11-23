@@ -2,6 +2,10 @@
 *.json
 *.pq
 
+vis/*.gexf
+vis/*.nx
+vis/*.html
+
 # !collections.json
 # !combined_members.json
 # !network_df.csv
