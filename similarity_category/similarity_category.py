@@ -16,7 +16,7 @@ import os
 import config as cfg 
 dir_local_data = cfg.dir_similarity_category / "data"
 path_similarity_category = cfg.dir_data / "similarity_by_category.pq"
-
+path_similarity_category_distance = cfg.dir_data / "similarity_distance_by_category.pq"
 # input
 path_voters = cfg.dir_data / "relevant_voters_with_voterid.pq"
 path_category = 'opensea_categories_top50.pq'
@@ -85,12 +85,45 @@ def compute_similarity_category():
     df.to_parquet(path_similarity_category, **_parquet_kwargs)
     logging.info('Finish compute_similarity_category')
 
+def compute_similarity_category_distance():
+    df = load_voter_combinations()
+
+    df_category = (
+        load_voter_NFT_with_category()
+        .groupby(['voter', 'category'])
+        .slug.count()
+        .unstack(level = 'category')
+    )
+    df_category_pct = df_category.apply(lambda x: x.div(df_category.sum(axis = 1)), axis = 0)
+    category_dist = dict(zip(df_category_pct.index, df_category_pct.values))
+
+    def get_euclidean_distance(voter1, voter2):
+        a = category_dist[voter1]
+        b = category_dist[voter2]
+        distance =  np.linalg.norm(a - b)
+        return distance
+    
+    distance = list(map(lambda x: get_euclidean_distance(*x), df.values))
+    df['similarity_category_distance'] = distance
+    
+    df.to_parquet(path_similarity_category_distance, **_parquet_kwargs)
+    logging.info('Finish compute_similarity_category_distance')
+
 def load_similarity_category(use_cached = True):
     if not use_cached:
         os.remove(path_similarity_category)
     if not os.path.exists(path_similarity_category):
         compute_similarity_category()
     df = pd.read_parquet(path_similarity_category)
+    df = df.astype({'voter1': 'category', 'voter2': 'category'})
+    return df
+
+def load_similarity_category_distance(use_cached = True):
+    if not use_cached:
+        os.remove(path_similarity_category_distance)
+    if not os.path.exists(path_similarity_category_distance):
+        compute_similarity_category_distance()
+    df = pd.read_parquet(path_similarity_category_distance)
     df = df.astype({'voter1': 'category', 'voter2': 'category'})
     return df
 
@@ -128,8 +161,21 @@ def create_binary_similarity_category(batch_size = 10**6):
             append = True if os.path.exists(dir_local_data / path_binary_similarity) else False
             df_out.to_parquet(dir_local_data / path_binary_similarity, append = append, **_parquet_kwargs)
         logging.info(f'Finish Category - {category}')
-        
+
+def stats_openSea_category_list(topN = 2):
+    df_labels = pd.read_parquet(cfg.dir_data / path_category)
+    df = (
+        df_labels
+        .sort_values('volume_eth', ascending = False)
+        .groupby('category')
+        .head(topN)
+        .loc[:, ['category', 'name', 'volume_eth']]
+        .sort_values(['category', 'volume_eth'], ascending = False)
+    )
+    df.to_csv(dir_local_data / f'category_list_top_{topN}.csv', index = False)
+            
 def main():
+    # binary variable
     df = load_similarity_category(use_cached = False)
     df_stats = (
         df
@@ -139,8 +185,19 @@ def main():
         .sort_values('pct_voter_pairs_coown_this_NFT', ascending = False)
     )
     df_stats.pipe(display)
-    df_stats.to_csv(dir_local_data / 'df_stats.csv')
-    pass
+    df_stats.to_csv(dir_local_data / 'df_stats_binary.csv')
+    
+
+    # Euclidean distance
+    df = load_similarity_category_distance(use_cached = False)
+    df_stats = (
+        df
+        .similarity_category_distance
+        .describe()
+        .to_frame()
+    )
+    df_stats.pipe(display)
+    df_stats.to_csv(dir_local_data / 'df_stats_euclidean_distance.csv')
 
 if __name__ == '__main__':
     main()
