@@ -19,7 +19,7 @@ import sys
 os.chdir(projectfolder)  # For interactive testing
 sys.path.insert(0, "")  # Required for loading modules
 
-
+import statsmodels.api as sm
 import pandas as pd
 from src.i021shared_dao_membership import (
     get_relevant_voters,
@@ -53,22 +53,22 @@ logger.addHandler(stream_handler)
 data_dir = projectfolder / "data"
 dao_voter_mapping = "dao_voter_mapping.pq"
 
-covoting_between_voters_file = "covoting_between_voters.pq"
-binary_outputfile = "dao_voters_similarity_votechoice_binary.pq"
 numeric_outputfile = "dao_voters_similarity_votechoice_numeric.pq"
 
-covoting_between_voters_normalized_file = "covoting_between_voters_normalized.pq"
-binary_outputfile_normalized = "dao_voters_similarity_votechoice_normalized_binary.pq"
-numeric_outputfile_normalized = "dao_voters_similarity_votechoice_normalized_numeric.pq"
-
 
 # %%
-dao = pd.read_parquet(data_dir / numeric_outputfile).set_index(["voter1", "voter2"])
+voter_subset = sorted(
+    pd.read_parquet(data_dir / "relevant_voters_with_voterid.pq", columns=["voterid"])
+    .iloc[:, 0]
+    .sample(1000)
+    .to_list()
+)
 # %%
-voter_subset = sorted(set(dao["voter1"].sample(1000)))[:100]
-# %%
-
-dao = dao.loc[voter_subset]
+dao = (
+    pd.read_parquet(data_dir / numeric_outputfile)
+    .set_index(["voter1", "voter2"])
+    .loc[voter_subset]
+)
 
 
 # %%
@@ -89,15 +89,41 @@ nftcat = (
     .loc[voter_subset]
 )
 # %%
-nftcat["similarity_category_distance"].hist(bins=100)
+# nftcat["similarity_category_distance"].hist(bins=100)
 
 # %%
 
 merged = pd.merge(dao, nftcat, how="left", on=["voter1", "voter2"], validate="1:1")
-merged = pd.merge(
-    merged, nft, how="left", on=["voter1", "voter2"], validate="1:1"
-).fillna(0)
+merged = (
+    pd.merge(merged, nft, how="left", on=["voter1", "voter2"], validate="1:1")
+    .fillna(0)
+    .astype(pd.SparseDtype("float", 0))
+)
+merged = merged.loc[merged.index.get_level_values(1).isin(voter_subset)]
+merged = sm.add_constant(merged, prepend=False)
+# %%
+# merged.reset_index().to_parquet(data_dir / "regression_frame.pq")
 
 # %%
-merged.reset_index().to_parquet(data_dir / "regression_frame.pq")
+v1 = pd.get_dummies(
+    merged.reset_index()[["voter1"]], columns=["voter1"], sparse=False, prefix="fe"
+)
+v2 = pd.get_dummies(
+    merged.reset_index()[["voter2"]], columns=["voter2"], sparse=False, prefix="fe"
+)
+
+fe = v1.add(v2, fill_value=0).astype(pd.SparseDtype("bool", 0))
+fe.index = merged.index
+
+
+# %%
+
+mod = sm.OLS(
+    merged[["nsharedchoices"]],
+    pd.concat([merged[["similarity_category_distance"]], fe], axis=1),
+)
+res = mod.fit()
+
+print(res.summary())
+
 # %%
