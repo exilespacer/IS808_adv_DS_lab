@@ -55,7 +55,7 @@ shared_daos_between_voters = "shared_daos_between_voters.pq"
 list_of_voters_file = "list_of_voters_used_for_shared_dao_calculations.pq"
 binary_similarity = "dao_voters_similarity_binary.pq"
 numeric_similarity = "dao_voters_similarity_numeric.pq"
-top_20_nfts_list = "top20_NFT_labeling.csv"
+relevant_nft_collections = "opensea_categories_top50.pq"
 
 
 # %%
@@ -74,7 +74,7 @@ def get_relevant_voters(
     """
 
     df_dao_voters = pd.read_parquet(
-        data_dir / dao_voter_mapping, columns=["dao", "voter", "proposalid"]
+        data_dir / dao_voter_mapping, columns=["dao", "voterid", "proposalid"]
     ).drop_duplicates()
 
     if len(list_of_voters) == 0:
@@ -122,7 +122,7 @@ def get_relevant_voters(
             raise ValueError("Something provided for nft_project, but unhandled type")
 
         # Get the number of proposals for which a voter voted
-        nproposals = df_dao_voters.groupby(["voter"]).size()
+        nproposals = df_dao_voters.groupby(["voterid"]).size()
         voters_with_enough_votes = set(
             nproposals[nproposals >= minimum_number_of_votes].index
         )
@@ -158,19 +158,19 @@ def get_input_data(
 
     # Reduce the voters to the relevant ones
 
-    df_by_voters = in_df.loc[df_by_voters.index.isin(relevant_voters)]
+    df_by_voters = in_df.loc[in_df.index.isin(relevant_voters)]
 
     # Create the main iteration input dictionary
     lookup_dict = (
         df_by_voters.reset_index()
         .groupby("dao")
-        .agg({"voter": lambda x: set(x)})
+        .agg({"voterid": lambda x: set(x)})
         .iloc[:, 0]
         .to_dict()
     )
 
     # Export list of voters
-    pd.DataFrame(sorted(relevant_voters), columns=["voter"]).to_parquet(
+    pd.DataFrame(sorted(relevant_voters), columns=["voterid"]).to_parquet(
         data_dir / list_of_voters_file, compression="brotli", index=False
     )
 
@@ -255,12 +255,26 @@ def batched(iterable, n):
         yield batch
 
 
-def export_regression_dataframes(batch_size: int = 25_000_000, **kwargs):
+def export_regression_dataframes(
+    indf=None,
+    binary_outputfile=None,
+    numeric_outputfile=None,
+    batch_size: int = 25_000_000,
+    **kwargs,
+):
     """
     Exports the numeric and binary full (i.e. non-sparse) regression dataframes.
     """
+    if indf is None:
+        df = load_data(**kwargs).set_index(["voter1", "voter2"]).sort_index()
+    else:
+        df = indf.set_index(["voter1", "voter2"]).sort_index()
 
-    df = load_data(**kwargs).set_index(["voter1", "voter2"]).sort_index()
+    if binary_outputfile is None:
+        binary_outputfile = binary_similarity
+
+    if numeric_outputfile is None:
+        numeric_outputfile = numeric_similarity
 
     lov = pd.read_parquet(data_dir / list_of_voters_file)
 
@@ -279,27 +293,27 @@ def export_regression_dataframes(batch_size: int = 25_000_000, **kwargs):
             columns=["_temp"],
         ).sort_index()
         nframe = nframe.join(df, how="left", on=["voter1", "voter2"])[
-            ["nshareddaos"]
+            [df.columns[0]]
         ].fillna(0)
 
         if id == 0:
             nframe.reset_index().to_parquet(
-                data_dir / numeric_similarity,
+                data_dir / numeric_outputfile,
                 compression="brotli",
                 engine="fastparquet",
             )
             (nframe > 0).reset_index().to_parquet(
-                data_dir / binary_similarity, compression="brotli", engine="fastparquet"
+                data_dir / binary_outputfile, compression="brotli", engine="fastparquet"
             )
         else:
             nframe.reset_index().to_parquet(
-                data_dir / numeric_similarity,
+                data_dir / numeric_outputfile,
                 compression="brotli",
                 engine="fastparquet",
                 append=True,
             )
             (nframe > 0).reset_index().to_parquet(
-                data_dir / binary_similarity,
+                data_dir / binary_outputfile,
                 compression="brotli",
                 engine="fastparquet",
                 append=True,
@@ -335,9 +349,9 @@ def load_data(list_of_voters: list = [], force: bool = False, **kwargs):
         # Creates the pickle with the results
 
         df_dao_voters = (
-            pd.read_parquet(data_dir / dao_voter_mapping, columns=["dao", "voter"])
+            pd.read_parquet(data_dir / dao_voter_mapping, columns=["dao", "voterid"])
             .drop_duplicates()
-            .set_index("voter")
+            .set_index("voterid")
             .sort_index()
         )
         create_links(
@@ -381,15 +395,17 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
     # Load list of voters from Chia-Yi
-    # list_of_voters = (
-    #     pd.read_csv(data_dir / "voter_selected_20221108.csv").iloc[:, 0].to_list()
-    # )
-
-    # main(list_of_voters=list_of_voters, force=True)
-
-    main(
-        force=True,
-        minimum_number_of_votes=25,
-        minimum_number_of_nfts=20,
-        nft_projects_csv_file=top_20_nfts_list,
+    list_of_voters = (
+        pd.read_parquet(data_dir / "relevant_voters_with_voterid.pq")
+        .iloc[:, 1]
+        .to_list()
     )
+
+    main(list_of_voters=list_of_voters, force=True)
+
+    # main(
+    #     force=True,
+    #     minimum_number_of_votes=25,
+    #     minimum_number_of_nfts=20,
+    #     nft_projects=relevant_nft_collections,
+    # )

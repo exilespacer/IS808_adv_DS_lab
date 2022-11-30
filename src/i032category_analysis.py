@@ -37,7 +37,7 @@ opensea_categories_full_file = "opensea_categories_full.pq"
 
 # %%
 cat = pd.read_parquet(data_dir / opensea_categories_full_file).drop_duplicates()
-
+# cat = cat.groupby("category").head(50)
 # %%
 col = "size"
 ax = sns.histplot(
@@ -64,7 +64,53 @@ for i, bar in enumerate(ax.patches):
 
 plt.show()
 plt.clf()
+# %%
+# Percentage table
+tdf = (
+    pd.merge(
+        cat.groupby("slug")["category"].size().reset_index(),
+        cat.groupby("slug")["volume_eth"].first().reset_index(),
+        how="inner",
+        on="slug",
+    )
+    .groupby("category")["volume_eth"]
+    .sum()
+)
+print(tdf.divide(tdf.sum()).to_markdown())
 
+# Plot
+ax = (
+    pd.merge(
+        cat.groupby("slug")["category"].size().reset_index(),
+        cat.groupby("slug")["volume_eth"].first().reset_index(),
+        how="inner",
+        on="slug",
+    )
+    .groupby("category")["volume_eth"]
+    .sum()
+    .plot.bar()
+)
+ax.set_xlabel("Number of NFT categories assigned")
+ax.set_ylabel("Sum of trading volume")
+
+for i, bar in enumerate(ax.patches):
+    height = bar.get_height()
+
+    if height == 0:
+        continue
+
+    ax.text(
+        x=bar.get_x()
+        + (
+            bar.get_width() / 2
+        ),  # x-coordinate position of data label, padded to be in the middle of the bar
+        y=height * 1.1,  # y-coordinate position of data label, padded 0.2 above bar
+        s="{:,.0f}".format(height),  # data label, formatted to ignore decimals
+        ha="center",
+    )  # sets horizontal alignment (ha) to center
+
+plt.show()
+plt.clf()
 # %%
 
 
@@ -126,7 +172,12 @@ ax = stacked_bar_df.sort_values(
 )
 ax.set_xlabel("NFT category")
 ax.set_ylabel("Traded volume in ETH")
+ax.set_title("Trading volume contribution by category for the top 50 NFTs")
 plt.show()
 plt.clf()
 sns.set_theme()
+# %%
+
+# %%
+
 # %%
