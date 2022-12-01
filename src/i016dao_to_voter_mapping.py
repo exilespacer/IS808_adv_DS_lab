@@ -84,5 +84,6 @@ ndf = pd.merge(
     validate="m:1",
 ).loc[:, ["dao", "voterid", "choice", "power", "proposalid", "timestamp"]]
 assert len(df) == len(ndf)
+ndf["timestamp"] = pd.to_datetime(ndf["timestamp"], unit="s")
 ndf.to_parquet(data_dir / output_file, compression="brotli", index=False)
 # %%

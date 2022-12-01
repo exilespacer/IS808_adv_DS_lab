@@ -22,9 +22,6 @@ sys.path.insert(0, "")  # Required for loading modules
 
 import pandas as pd
 import json
-from src.i021shared_dao_membership import (
-    get_relevant_voters,
-)
 
 
 # %%
@@ -80,12 +77,13 @@ with open(data_dir / opensea_categories_har_file) as f:
 df = pd.DataFrame(rows).sort_values(["category", "volume_eth"], ascending=[True, False])
 # %%
 # Export full dataset
-top_n = 50
+top_n = 25
 
-df.to_parquet(
-    data_dir / opensea_categories_full_file, compression="brotli", index=False
-)
 df.groupby("category").head(top_n).to_parquet(
     data_dir / opensea_categories_file.format(top_n), compression="brotli", index=False
 )
 # %%
+
+df.to_parquet(
+    data_dir / opensea_categories_full_file, compression="brotli", index=False
+)
