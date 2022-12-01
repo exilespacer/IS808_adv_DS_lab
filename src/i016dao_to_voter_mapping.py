@@ -39,6 +39,7 @@ for file in tqdm(list(votes_dir.glob("*/*.json"))):
                 # Extract the relevant data
                 dao = vote["space"]["id"]
                 voter = vote["voter"]
+                timestamp = vote["created"]
 
                 # Choices can be in different formats
                 if isinstance(vote["choice"], dict):
@@ -60,10 +61,14 @@ for file in tqdm(list(votes_dir.glob("*/*.json"))):
 
                 # Add new lines for all the choice combinations
                 for chc, pwr in choice.items():
-                    daolist.append((dao, voter, str(chc), float(pwr), proposalid))
+                    daolist.append(
+                        (dao, voter, str(chc), float(pwr), proposalid, timestamp)
+                    )
 
 
-df = pd.DataFrame(daolist, columns=["dao", "voter", "choice", "power", "proposalid"])
+df = pd.DataFrame(
+    daolist, columns=["dao", "voter", "choice", "power", "proposalid", "timestamp"]
+)
 del daolist
 
 # %%
@@ -77,7 +82,7 @@ ndf = pd.merge(
     left_on="voter",
     right_on="requestedaddress",
     validate="m:1",
-).loc[:, ["dao", "voterid", "choice", "power", "proposalid"]]
+).loc[:, ["dao", "voterid", "choice", "power", "proposalid", "timestamp"]]
 assert len(df) == len(ndf)
 ndf.to_parquet(data_dir / output_file, compression="brotli", index=False)
 # %%
