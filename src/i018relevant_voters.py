@@ -79,7 +79,6 @@ def get_relevant_voters(
     voters_with_nfts = nft_data.groupby("voterid").size()
 
     if nft_projects is not None:
-
         nft_projects_df = pd.read_parquet(data_dir / nft_projects)
 
     return get_relevant_voters_given_data(
@@ -179,7 +178,7 @@ if __name__ == "__main__":
     )
 
     # %%
-
+    # Because this part is run rarely (expected as of now), manually run the data loading stuff from get_relevant_voters
     cd = {
         "minimum_number_of_votes": range(1, 40, 3),
         "minimum_number_of_nfts": range(1, 40, 3),

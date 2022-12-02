@@ -21,6 +21,7 @@ sys.path.insert(0, "")  # Required for loading modules
 
 
 import pandas as pd
+from tqdm import tqdm
 from src.i021shared_dao_membership import (
     create_links,
     convert_pickle_to_parquet,
@@ -78,6 +79,12 @@ if __name__ == "__main__":
         pd.read_parquet(data_dir / "relevant_voters_with_voterid.pq").loc[:, "voterid"]
     )
 
+    # %%
+    ###########################################################################
+    ######################## Absolute ########################################
+    ###########################################################################
+    logger.info("Absolute starting")
+
     d = (
         df_dao_voters.loc[df_dao_voters.index.isin(relevant_voters)]
         .reset_index()
@@ -92,7 +99,7 @@ if __name__ == "__main__":
     logger.info("Input data generated, starting link creation")
 
     # Create links for the different proposals
-    x = create_links(lookup_dict)
+    links = create_links(lookup_dict)
     convert_pickle_to_parquet(
         covoting_between_voters_file,
         columnname="nsharedchoices",
@@ -103,11 +110,16 @@ if __name__ == "__main__":
         binary_outputfile=binary_outputfile,
         numeric_outputfile=numeric_outputfile,
     )
+    # %%
+    ###########################################################################
+    ################### Normalized ###############################
+    ###########################################################################
+    logger.info("Normalized starting")
 
     d = (
         df_dao_voters.loc[df_dao_voters.index.isin(relevant_voters)]
         .reset_index()
-        .groupby(["dao", "choice"])
+        .groupby(["dao", "proposalid", "choice"])
         .agg({"voterid": lambda x: set(x)})
         .iloc[:, 0]
         .to_dict()
@@ -116,16 +128,61 @@ if __name__ == "__main__":
         k: v for k, v in d.items() if len(v) >= 2
     }  # It's impossible to have a pair with less than 2 voters
 
-    x = create_links(lookup_dict)
-    convert_pickle_to_parquet(
-        covoting_between_voters_normalized_file,
-        columnname="nsharedchoicesnormalized",
+    links = create_links(lookup_dict, dump_to_pickle=False)
+
+    votes_by_voter_dao = (
+        df_dao_voters.loc[df_dao_voters.index.isin(relevant_voters)]
+        .reset_index()
+        # .drop_duplicates(subset=["proposalid", "dao", "voterid"])
+        .groupby(["voterid", "dao"])
+        .size()
+        .to_dict()
+    )
+
+    daos_by_voters = (
+        df_dao_voters.loc[df_dao_voters.index.isin(relevant_voters)]
+        .reset_index()
+        # .drop_duplicates(subset=["proposalid", "dao", "voterid"])
+        .groupby(["voterid"])
+        .agg({"dao": lambda x: set(x)})
+        .iloc[:, 0]
+        .to_dict()
+    )
+
+    normalized_dict = {}
+    for (v1, v2), n_shared_choices in tqdm(links.items()):
+        shared_daos = daos_by_voters[v1] & daos_by_voters[v2]
+
+        total_votes_in_shared_daos = 0
+        for shared_dao in shared_daos:
+            total_votes_in_shared_daos += (
+                votes_by_voter_dao[(v1, shared_dao)]
+                + votes_by_voter_dao[(v2, shared_dao)]
+            )
+
+        normalized_dict[(v1, v2)] = (2 * n_shared_choices) / total_votes_in_shared_daos
+
+    df = pd.DataFrame.from_dict(
+        normalized_dict, orient="index", columns=["nsharedchoicesnormalized"]
+    ).reset_index()
+    # Split up the tuple of voter pairs into separate columns
+    df[["voter1", "voter2"]] = pd.DataFrame(df["index"].tolist(), index=df.index)
+    # Clean up
+    df = df.drop("index", axis=1).loc[
+        :, ["voter1", "voter2", "nsharedchoicesnormalized"]
+    ]
+
+    df.to_parquet(
+        data_dir / covoting_between_voters_normalized_file,
+        compression="brotli",
+        index=False,
     )
 
     export_dense_dataframes(
-        indf=pd.read_parquet(data_dir / covoting_between_voters_normalized_file),
+        indf=df,
         binary_outputfile=binary_outputfile_normalized,
         numeric_outputfile=numeric_outputfile_normalized,
     )
 
     logger.info("Done")
+# %%
