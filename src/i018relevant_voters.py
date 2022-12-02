@@ -59,6 +59,7 @@ relevant_voters_with_voterid = "relevant_voters_with_voterid.pq"
 def get_relevant_voters(
     list_of_voters: list = [],
     minimum_number_of_votes=0,
+    maximum_number_of_nfts=100_000_000,
     minimum_number_of_nfts=0,
     nft_projects=None,
     votes_after_date="2019-01-01",
@@ -86,7 +87,12 @@ def get_relevant_voters(
 
         voters_with_nfts = nft_data.groupby("voterid").size()
         voters_with_nfts = set(
-            voters_with_nfts[voters_with_nfts > minimum_number_of_nfts].index
+            voters_with_nfts[
+                (
+                    (voters_with_nfts > minimum_number_of_nfts)
+                    & (voters_with_nfts <= maximum_number_of_nfts)
+                )
+            ].index
         )
 
         if (
@@ -125,7 +131,7 @@ def get_relevant_voters(
             .size()
         )
         voters_with_enough_votes = set(
-            nproposals[nproposals >= minimum_number_of_votes].index
+            nproposals[((nproposals >= minimum_number_of_votes))].index
         )
 
         if nft_projects is not None:
@@ -148,19 +154,23 @@ def get_relevant_voters(
 
 
 # %%
-# Narrow the datset down
-relevant_voters = get_relevant_voters(
-    minimum_number_of_votes=35,
-    minimum_number_of_nfts=25,
-    nft_projects=opensea_categories_file,
-    votes_after_date="2022-05-01",
-)
-print(len(relevant_voters))
 
-# %%
-all_voters = pd.read_parquet(data_dir / all_voters_with_voterid).set_index("voterid")
-rv = all_voters[all_voters.index.isin(relevant_voters)].reset_index()
-rv.to_parquet(
-    data_dir / relevant_voters_with_voterid, compression="brotli", index=False
-)
-# %%
+if __name__ == "__main__":
+    logger.setLevel(logging.INFO)
+    # Narrow the datset down
+    relevant_voters = get_relevant_voters(
+        minimum_number_of_votes=20,
+        minimum_number_of_nfts=20,
+        maximum_number_of_nfts=10_000,
+        nft_projects=opensea_categories_file,
+        votes_after_date="2022-08-01",
+    )
+    logger.info(f"{len(relevant_voters)} relevant voters")
+
+    all_voters = pd.read_parquet(data_dir / all_voters_with_voterid).set_index(
+        "voterid"
+    )
+    rv = all_voters[all_voters.index.isin(relevant_voters)].reset_index()
+    rv.to_parquet(
+        data_dir / relevant_voters_with_voterid, compression="brotli", index=False
+    )

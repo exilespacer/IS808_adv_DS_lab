@@ -25,6 +25,9 @@ from tqdm import tqdm
 import itertools
 import collections
 import pickle
+from math import ceil
+
+from src.i018relevant_voters import relevant_voters_with_voterid
 
 # Gets or creates a logger
 import logging
@@ -49,10 +52,9 @@ logger.addHandler(stream_handler)
 # %%
 data_dir = projectfolder / "data"
 dao_voter_mapping = "dao_voter_mapping.pq"
-opensea_downloads = "opensea_collections.pq"
-shared_daos_between_voters_pickle = "shared_daos_between_voters.pickle"
+temporary_pickle = "_temp.pickle"
 shared_daos_between_voters = "shared_daos_between_voters.pq"
-list_of_voters_file = "list_of_voters_used_for_shared_dao_calculations.pq"
+# list_of_voters_file = "list_of_voters_used_for_shared_dao_calculations.pq"
 binary_similarity = "dao_voters_similarity_binary.pq"
 numeric_similarity = "dao_voters_similarity_numeric.pq"
 relevant_nft_collections = "opensea_categories_top50.pq"
@@ -61,101 +63,10 @@ relevant_nft_collections = "opensea_categories_top50.pq"
 # %%
 
 
-def get_relevant_voters(
-    list_of_voters: list = [],
-    minimum_number_of_votes=0,
-    minimum_number_of_nfts=0,
-    nft_projects=None,
-):
-    """
-    Returns the input dictionary required for the next steps.
-    If no list_of_voters is passed, it will apply some default filters.
-    Otherwise it will use the provided list of voters without further limitation.
-    """
-
-    df_dao_voters = pd.read_parquet(
-        data_dir / dao_voter_mapping, columns=["dao", "voterid", "proposalid"]
-    ).drop_duplicates()
-
-    if len(list_of_voters) == 0:
-
-        logger.info(
-            f"Min NFT: {minimum_number_of_nfts} Min votes: {minimum_number_of_votes} File provided: {nft_projects is not None}"
-        )
-
-        nft_data = pd.read_parquet(
-            data_dir / opensea_downloads, columns=["requestedaddress", "slug"]
-        ).drop_duplicates()
-
-        voters_with_nfts = nft_data.groupby("requestedaddress").size()
-        voters_with_nfts = set(
-            voters_with_nfts[voters_with_nfts > minimum_number_of_nfts].index
-        )
-
-        if (
-            nft_projects is not None
-            and isinstance(nft_projects, str)
-            and nft_projects.endswith("csv")
-        ):
-            voters_with_specific_nft_projects = set(
-                pd.merge(
-                    nft_data,
-                    pd.read_csv(data_dir / nft_projects),
-                    on="slug",
-                    how="inner",
-                )["requestedaddress"]
-            )
-        elif (
-            nft_projects is not None
-            and isinstance(nft_projects, str)
-            and nft_projects.endswith("pq")
-        ):
-            voters_with_specific_nft_projects = set(
-                pd.merge(
-                    nft_data,
-                    pd.read_parquet(data_dir / nft_projects),
-                    on="slug",
-                    how="inner",
-                )["requestedaddress"]
-            )
-        elif nft_projects is not None:
-            raise ValueError("Something provided for nft_project, but unhandled type")
-
-        # Get the number of proposals for which a voter voted
-        nproposals = df_dao_voters.groupby(["voterid"]).size()
-        voters_with_enough_votes = set(
-            nproposals[nproposals >= minimum_number_of_votes].index
-        )
-
-        if nft_projects is not None:
-            relevant_voters = (
-                voters_with_nfts
-                & voters_with_enough_votes
-                & voters_with_specific_nft_projects
-            )
-        else:
-            relevant_voters = voters_with_nfts & voters_with_enough_votes
-
-    else:
-        relevant_voters = set(list_of_voters)
-
-    logger.info(
-        f"Number of voters: {len(relevant_voters)} => {len(relevant_voters)**2/2/1e6:.2f} million combinations"
-    )
-
-    return relevant_voters
-
-
 def get_input_data(
     in_df: pd.DataFrame,
     relevant_voters=None,
-    **kwargs,
 ):
-    if not isinstance(relevant_voters, set):
-        relevant_voters = get_relevant_voters(**kwargs)
-    else:
-        logger.info("Using set of provided relevant voters")
-
     # Reduce the voters to the relevant ones
 
     df_by_voters = in_df.loc[in_df.index.isin(relevant_voters)]
@@ -167,11 +78,6 @@ def get_input_data(
         .agg({"voterid": lambda x: set(x)})
         .iloc[:, 0]
         .to_dict()
-    )
-
-    # Export list of voters
-    pd.DataFrame(sorted(relevant_voters), columns=["voterid"]).to_parquet(
-        data_dir / list_of_voters_file, compression="brotli", index=False
     )
 
     return lookup_dict
@@ -204,19 +110,19 @@ def create_links(lookup_dict: dict, dump_to_pickle: bool = True):
     # Dump the results into a file to preserve data if running out of memory
     if dump_to_pickle is True:
         logger.info("Dumping the counter object to pickle")
-        with open(data_dir / shared_daos_between_voters_pickle, "wb") as f:
+        with open(data_dir / temporary_pickle, "wb") as f:
             pickle.dump(counter, f)
 
     return counter
 
 
-def convert_pickle_to_parquet(_in, _out, columnname="nshareddaos"):
+def convert_pickle_to_parquet(_out, columnname="nshareddaos"):
     """
     Loads the pickle created by create_links and converts it to a DataFrame that is stored as parquet
     """
 
     logger.info("Loading existing pickle into DataFrame")
-    with open(data_dir / _in, "rb") as f:
+    with open(data_dir / temporary_pickle, "rb") as f:
         df = pd.DataFrame.from_dict(
             pickle.load(f), orient="index", columns=[columnname]
         ).reset_index()
@@ -229,17 +135,64 @@ def convert_pickle_to_parquet(_in, _out, columnname="nshareddaos"):
     logger.info("Exporting to parquet")
     df.to_parquet(data_dir / _out, compression="brotli", index=False)
     # Delete the pickle file
-    (data_dir / _in).unlink()
+    (data_dir / temporary_pickle).unlink()
 
     return df
 
 
-def load_existing_parquet():
+def generate_or_load_sparse_data(
+    sparse_outputfile, list_of_voters: list = [], force: bool = False, **kwargs
+):
     """
-    Loads precalculated results from an existing parquet file
+    Loads / creates the sparse data.
+    Pass force=True to recreate all files.
+    Pass list_of_voters to limit calculations to these voters.
     """
-    logger.info("Loading from parquet")
-    df = pd.read_parquet(data_dir / shared_daos_between_voters)
+
+    if (
+        list_of_voters != []
+        and force is False
+        and (
+            (data_dir / temporary_pickle).is_file()
+            or (data_dir / sparse_outputfile).is_file()
+        )
+    ):
+        logger.warning(
+            "You have provided a list of voters and the files exist, but you are not forcing a complete re-run. Is this what you want? Pass force=True to force."
+        )
+
+    # No intermediate or result files exist, or forced -> We need to re-run
+    if (
+        force is True
+        or not (data_dir / temporary_pickle).is_file()
+        and not (data_dir / sparse_outputfile).is_file()
+    ):
+
+        # Creates the pickle with the results
+
+        df_dao_voters = (
+            pd.read_parquet(data_dir / dao_voter_mapping, columns=["dao", "voterid"])
+            .drop_duplicates()
+            .set_index("voterid")
+            .sort_index()
+        )
+        create_links(
+            get_input_data(df_dao_voters, relevant_voters=list_of_voters, **kwargs)
+        )
+
+        # Converts everything to parquet
+        df = convert_pickle_to_parquet(temporary_pickle, columnname="nshareddaos")
+
+    # Pickle exists -> convert to parquet
+    elif (data_dir / temporary_pickle).is_file() and not (
+        data_dir / sparse_outputfile
+    ).is_file():
+        df = convert_pickle_to_parquet(temporary_pickle, columnname="nshareddaos")
+
+    # Parquet exists
+    else:
+        logger.info("Loading from parquet")
+        df = pd.read_parquet(data_dir / sparse_outputfile)
 
     return df
 
@@ -255,36 +208,37 @@ def batched(iterable, n):
         yield batch
 
 
-def export_regression_dataframes(
+def export_dense_dataframes(
     indf=None,
-    binary_outputfile=None,
     numeric_outputfile=None,
+    binary_outputfile=None,
     batch_size: int = 25_000_000,
     **kwargs,
 ):
     """
-    Exports the numeric and binary full (i.e. non-sparse) regression dataframes.
+    Exports the numeric full (i.e. non-sparse) regression dataframes.
     """
+
     if indf is None:
-        df = load_data(**kwargs).set_index(["voter1", "voter2"]).sort_index()
+        df = (
+            generate_or_load_sparse_data(**kwargs)
+            .set_index(["voter1", "voter2"])
+            .sort_index()
+        )
     else:
         df = indf.set_index(["voter1", "voter2"]).sort_index()
 
-    if binary_outputfile is None:
-        binary_outputfile = binary_similarity
+    vs = (
+        pd.read_parquet(data_dir / relevant_voters_with_voterid)
+        .loc[:, "voterid"]
+        .to_list()
+    )
 
-    if numeric_outputfile is None:
-        numeric_outputfile = numeric_similarity
-
-    lov = pd.read_parquet(data_dir / list_of_voters_file)
+    logger.info("Starting export to dense parquet.")
 
     for id, batch in tqdm(
-        enumerate(
-            batched(
-                itertools.combinations((vs := lov.iloc[:, 0].to_list()), 2), batch_size
-            )
-        ),
-        total=(len(vs) ** 2 / 2 - len(vs)) / batch_size,
+        enumerate(batched(itertools.combinations(vs, 2), batch_size)),
+        total=ceil((len(vs) ** 2 / 2 - len(vs)) / batch_size),
     ):
 
         nframe = pd.DataFrame(
@@ -320,64 +274,6 @@ def export_regression_dataframes(
             )
 
 
-def load_data(list_of_voters: list = [], force: bool = False, **kwargs):
-    """
-    Loads / creates the sparse data.
-    Pass force=True to recreate all files.
-    Pass list_of_voters to limit calculations to these voters.
-    """
-
-    if (
-        list_of_voters != []
-        and force is False
-        and (
-            (data_dir / shared_daos_between_voters_pickle).is_file()
-            or (data_dir / shared_daos_between_voters).is_file()
-        )
-    ):
-        logger.warning(
-            "You have provided a list of voters, but are not forcing a re-run. Is this what you want? Pass force=True to force."
-        )
-
-    # No intermediate or result files exist, or forced -> We need to re-run
-    if (
-        force is True
-        or not (data_dir / shared_daos_between_voters_pickle).is_file()
-        and not (data_dir / shared_daos_between_voters).is_file()
-    ):
-
-        # Creates the pickle with the results
-
-        df_dao_voters = (
-            pd.read_parquet(data_dir / dao_voter_mapping, columns=["dao", "voterid"])
-            .drop_duplicates()
-            .set_index("voterid")
-            .sort_index()
-        )
-        create_links(
-            get_input_data(df_dao_voters, list_of_voters=list_of_voters, **kwargs)
-        )
-
-        # Converts everything to parquet
-        df = convert_pickle_to_parquet(
-            shared_daos_between_voters_pickle, shared_daos_between_voters
-        )
-
-    # Pickle exists -> convert to parquet
-    elif (data_dir / shared_daos_between_voters_pickle).is_file() and not (
-        data_dir / shared_daos_between_voters
-    ).is_file():
-        df = convert_pickle_to_parquet(
-            shared_daos_between_voters_pickle, shared_daos_between_voters
-        )
-
-    # Parquet exists
-    else:
-        df = load_existing_parquet()
-
-    return df
-
-
 def main(list_of_voters: list = [], force: bool = False, **kwargs):
     """
     Performs all steps necessary to obtain results.
@@ -385,7 +281,7 @@ def main(list_of_voters: list = [], force: bool = False, **kwargs):
     Pass list_of_voters to limit calculations to these voters.
     """
 
-    export_regression_dataframes(list_of_voters=list_of_voters, force=force, **kwargs)
+    export_dense_dataframes(list_of_voters=list_of_voters, force=force, **kwargs)
 
     logger.info("Done")
 
@@ -396,16 +292,13 @@ if __name__ == "__main__":
 
     # Load list of voters from Chia-Yi
     list_of_voters = (
-        pd.read_parquet(data_dir / "relevant_voters_with_voterid.pq")
-        .iloc[:, 1]
-        .to_list()
+        pd.read_parquet(data_dir / relevant_voters_with_voterid).iloc[:, 0].to_list()
     )
 
-    main(list_of_voters=list_of_voters, force=True)
-
-    # main(
-    #     force=True,
-    #     minimum_number_of_votes=25,
-    #     minimum_number_of_nfts=20,
-    #     nft_projects=relevant_nft_collections,
-    # )
+    main(
+        list_of_voters=list_of_voters,
+        force=True,
+        sparse_outputfile=shared_daos_between_voters,
+        binary_outputfile=binary_similarity,
+        numeric_outputfile=numeric_similarity,
+    )

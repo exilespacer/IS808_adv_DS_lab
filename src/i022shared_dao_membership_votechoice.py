@@ -22,11 +22,9 @@ sys.path.insert(0, "")  # Required for loading modules
 
 import pandas as pd
 from src.i021shared_dao_membership import (
-    get_relevant_voters,
-    relevant_nft_collections,
     create_links,
     convert_pickle_to_parquet,
-    export_regression_dataframes,
+    export_dense_dataframes,
 )
 
 # Gets or creates a logger
@@ -76,10 +74,8 @@ if __name__ == "__main__":
         .set_index("voterid")
         .sort_index()
     )
-    relevant_voters = get_relevant_voters(
-        list_of_voters=pd.read_parquet(data_dir / "relevant_voters_with_voterid.pq")
-        .iloc[:, 1]
-        .to_list(),
+    relevant_voters = set(
+        pd.read_parquet(data_dir / "relevant_voters_with_voterid.pq").loc[:, "voterid"]
     )
 
     d = (
@@ -98,12 +94,11 @@ if __name__ == "__main__":
     # Create links for the different proposals
     x = create_links(lookup_dict)
     convert_pickle_to_parquet(
-        "shared_daos_between_voters.pickle",
         covoting_between_voters_file,
         columnname="nsharedchoices",
     )
 
-    export_regression_dataframes(
+    export_dense_dataframes(
         indf=pd.read_parquet(data_dir / covoting_between_voters_file),
         binary_outputfile=binary_outputfile,
         numeric_outputfile=numeric_outputfile,
@@ -123,12 +118,11 @@ if __name__ == "__main__":
 
     x = create_links(lookup_dict)
     convert_pickle_to_parquet(
-        "shared_daos_between_voters.pickle",
         covoting_between_voters_normalized_file,
         columnname="nsharedchoicesnormalized",
     )
 
-    export_regression_dataframes(
+    export_dense_dataframes(
         indf=pd.read_parquet(data_dir / covoting_between_voters_normalized_file),
         binary_outputfile=binary_outputfile_normalized,
         numeric_outputfile=numeric_outputfile_normalized,

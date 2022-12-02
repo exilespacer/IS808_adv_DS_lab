@@ -31,24 +31,24 @@ dao_voters_merged_with_opensea = "dao_voters_merged_with_opensea.pq"
 # %%
 
 if not (data_dir / dao_voters_merged_with_opensea).is_file():
-    df_opensea = pd.read_parquet(data_dir / opensea_downloads)[
-        [
-            "requestedaddress",
+    df_opensea = pd.read_parquet(
+        data_dir / opensea_downloads,
+        columns=[
+            "voterid",
             "slug",
             "owned_asset_count",
-        ]  # Limit columns, otherwise I'm running out of RAM on the merge
-    ].drop_duplicates()
-    df_dao_voters = pd.read_parquet(data_dir / dao_voter_mapping)[
-        ["dao", "voter"]  # Limit columns, otherwise I'm running out of RAM on the merge
-    ].drop_duplicates()
+        ],
+    ).drop_duplicates()  # Limit columns, otherwise I'm running out of RAM on the merge
+    df_dao_voters = pd.read_parquet(
+        data_dir / dao_voter_mapping, columns=["dao", "voterid"]
+    ).drop_duplicates()
 
     merged = pd.merge(
         df_dao_voters,
         df_opensea,
-        left_on="voter",
-        right_on="requestedaddress",
+        on="voterid",
         how="inner",
-    ).drop("requestedaddress", axis=1)
+    )
     merged.to_parquet(
         data_dir / dao_voters_merged_with_opensea, index=False, compression="brotli"
     )

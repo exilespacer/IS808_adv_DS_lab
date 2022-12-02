@@ -39,4 +39,3 @@ cat = pd.read_parquet(
 pd.merge(oc.head(), cat, how="left", on="slug").to_parquet(
     data_dir / "voter_slug_category.pq", compression="brotli", index=False
 )
-# %%
