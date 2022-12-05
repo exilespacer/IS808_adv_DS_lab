@@ -101,7 +101,7 @@ def compute_nft_1st_degree_similarity() -> pd.DataFrame:
     )
 
     # get average similarity for two direction
-    df['pct_similar1st_avg'] = (df.pct_similar_voter1 + df.pct_similar_voter2) / 2
+    df['pct_similar1st_avg'] = (df.pct_similar1st_voter1 + df.pct_similar1st_voter2) / 2
 
     df.to_parquet(path_similarity_nft_1st_degree, **_parquet_kwargs)
     logging.info('Finish compute_nft_1st_degree_similarity')
@@ -110,15 +110,90 @@ def load_nft_1st_degree_similarity() -> pd.DataFrame:
     df = pd.read_parquet(path_similarity_nft_1st_degree)
     return df
 
+
+def get_voter_idx_mapping():
+    df_voters = pd.read_parquet(path_voters, columns = ['voterid'])
+    voters = np.sort(df_voters.voterid.unique())
+    voters_idx = dict(zip(voters, range(len(voters))))
+    return voters_idx
+
+def get_matrix_1st_degree() -> np.array:
+    voters_idx = get_voter_idx_mapping()
+    voters = voters_idx.keys()
+
+    df_1st = load_nft_1st_degree_similarity()
+    if len(voters) > 0:
+        df_1st = df_1st.loc[lambda x: x.voter1.isin(voters)].loc[lambda x: x.voter2.isin(voters)]
+    df_1st = df_1st.sort_values(by = ['voter1', 'voter2'])
+
+    arr_1st = (
+        df_1st
+        .loc[:, ['voter1', 'voter2', 'pct_similar1st_voter1', 'pct_similar1st_voter2']]
+        .values
+    )
+
+    voter_largest = len(voters_idx)
+    m_1st_degree = np.zeros((voter_largest, voter_largest))
+
+    for row in tqdm(arr_1st):
+        # NOTE: row[0] is the index of the dataframe
+        i = voters_idx[int(row[0])]
+        j = voters_idx[int(row[1])]
+        m_1st_degree[i, j] = row[2]
+        m_1st_degree[j, i] = row[3] 
+    return m_1st_degree
+
+def get_matrix_2nd_degree() -> np.array:
+    # get 1st degree similarity
+    m_1st_degree = get_matrix_1st_degree()
+    for idx in range(len(m_1st_degree)):
+        m_1st_degree[idx, idx] = 1
+
+    # get 2nd degree similarity
+    m_2nd_degree = (np.matmul(m_1st_degree, m_1st_degree) - 2 * m_1st_degree)/(len(m_1st_degree))
+    # assign diagonal to be zero
+    for idx in range(len(m_2nd_degree)):
+        m_2nd_degree[idx, idx] = 0 # TODO: what's the 2nd degree similarity between me and myself?
+    return m_2nd_degree
+
+def get_directed_1st_degree_similarity():
+    df_1st = load_nft_1st_degree_similarity()
+    x1 = df_1st.loc[:, ['voter1', 'voter2', 'pct_similar1st_voter1']].values
+    x2 = df_1st.loc[:, ['voter2', 'voter1', 'pct_similar1st_voter2']].values
+    df = pd.DataFrame(np.concatenate((x1, x2), axis=0), columns = ['voter1', 'voter2', 'pct_similar1st_voter1'])
+    return df
+
 def compute_nft_2nd_degree_similarity() -> pd.DataFrame:
-    # TODO
-    # df_1st = load_nft_1st_degree_similarity()
-    # # create a matrix
-    # m_1st_degree = []
-    # m_2nd_degree = np.dot(m_1st_degree, m_1st_degree) - 2 * m_1st_degree
-    # # assign diagonal to be zero
-    # # average directed similarity to be undirected
-    pass
+    m_2nd_degree = get_matrix_2nd_degree()
+
+    # make it dataframe
+    voters_idx = get_voter_idx_mapping()
+    voters = voters_idx.keys()
+    df = (
+        pd.DataFrame(m_2nd_degree, index = voters, columns = voters)
+        .stack()
+        .reset_index()
+    )
+    df.columns = ['voter1', 'voter2', 'pct_similar2nd_voter1']
+
+    # remove voter1== voter2
+    df = df.loc[lambda x: x.voter1 != x.voter2]
+
+    # average
+    df_2 = df.copy() 
+    df_2.columns = ['voter2', 'voter1', 'pct_similar2nd_voter2']
+
+    df = (
+        df
+        .loc[lambda x: x.voter1 < x.voter2]
+        .merge(df_2, on=['voter1', 'voter2'])
+    )
+
+    df['pct_similar2nd_avg'] = (df.pct_similar2nd_voter1 + df.pct_similar2nd_voter2) / 2
+    
+    df.to_parquet(path_similarity_nft_2nd_degree, **_parquet_kwargs)
+    logging.info('Finish compute_nft_2nd_degree_similarity')
+    return df
 
 def load_nft_2nd_degree_similarity() -> pd.DataFrame:
     df = pd.read_parquet(path_similarity_nft_2nd_degree)
@@ -128,10 +203,8 @@ def main():
     compute_similarity_nft_kinds()
     compute_nft_1st_degree_similarity()
     compute_nft_2nd_degree_similarity()
-    pass
+    
 
 if __name__ == '__main__':
     main()
-
-
 
