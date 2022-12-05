@@ -111,6 +111,14 @@ def compute_similarity_nft_distance():
     df.to_parquet(path_similarity_nft_distance, **_parquet_kwargs)
     logging.info(f'Finish {path_similarity_nft_distance}')
 
+def load_similarity_nft_kinds() -> pd.DataFrame:
+    df = pd.read_parquet(path_similarity_nft_kinds)
+    return df
+
+def load_similarity_nft_distance() -> pd.DataFrame:
+    df = pd.read_parquet(path_similarity_nft_distance)
+    return df
+
 def main():
     pass
 
