@@ -4,7 +4,9 @@ from pathlib import Path
 # Duplicate and comment out this row
 # It should be the top level folder of the repository
 # Sven
-projectfolder = Path("/home/mannheim/svahlpah/notebooks/is808")
+projectfolder = Path("/project/IS808_adv_DS_lab")
+# projectfolder = Path("/project/IS808_adv_DS_lab")
+# projectfolder = Path("/home/mannheim/svahlpah/notebooks/is808")
 # Mengnan
 # projectfolder = Path("/mypc/IS808_adv_DS_lab")
 
@@ -97,6 +99,40 @@ def run_regression(dep_var, indep_var, with_fe, cov_type="HC3"):
     return res
 
 
+def run_specification(specification):
+
+    logger.info(f"{specification}")
+
+    with open(regression_results_folder / specification["filename"], "wb") as f:
+        pickle.dump(r, f)
+    del r
+
+
+def add_filenames():
+
+    regression_results_folder.mkdir(parents=True, exist_ok=True)
+
+    try:
+        offset = (
+            max([int(f.stem[-5:]) for f in regression_results_folder.glob("*.pickle")])
+            + 1
+        )
+    except:
+        offset = 0
+
+    specifications = load_specifications()
+
+    new_specifications = []
+    for i, specification in enumerate(specifications):
+
+        filename = f"regression_{str(i+offset).zfill(5)}.pickle"
+        metadata = {**specification, "filename": filename}
+        new_specifications.append(metadata)
+
+    with open(data_dir / specifications_file, "w") as f:
+        json.dump(new_specifications, f)
+
+
 def run_specifications(specifications):
     regression_results_folder.mkdir(parents=True, exist_ok=True)
 
@@ -109,26 +145,8 @@ def run_specifications(specifications):
         offset = 0
 
     for i, specification in enumerate(specifications):
-        logger.warn(f"{specification}")
-        r = run_regression(**specification)
-
-        filename = f"regression_{str(i+offset).zfill(5)}.pickle"
-        metadata = {**specification, "filename": filename}
-
-        with open(regression_results_folder / filename, "wb") as f:
-            pickle.dump(r, f)
-        del r
-
-        write_metadata = [metadata]
-
-        if (data_dir / regression_metadata_file).is_file():
-            with open(data_dir / regression_metadata_file, "r") as f:
-                existing_metadata = json.load(f)
-
-            write_metadata += existing_metadata
-
-        with open(data_dir / regression_metadata_file, "w") as f:
-            json.dump(write_metadata, f)
+        logger.info(f"{specification}")
+        run_specification(specification)
 
 
 def load_regression_model(filename):
@@ -166,6 +184,7 @@ fe = (
 
 # %%
 logger.info("Starting")
+add_filenames()
 specifications = load_specifications()
 run_specifications(specifications)
 logger.info("Done")
