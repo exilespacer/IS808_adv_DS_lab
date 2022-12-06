@@ -50,14 +50,21 @@ data_dir = projectfolder / "data"
 covoting_file = "dao_voters_similarity_votechoice_numeric.pq"
 covoting_normalized_file = "dao_voters_similarity_votechoice_normalized_numeric.pq"
 coparticipation_file = "dao_voters_similarity_numeric.pq"
+coparticipation_normalized_file = "dao_voters_similarity_numeric_normalized.pq"
 
 relevant_voters_with_voterid = "relevant_voters_with_voterid.pq"
 
 nft_level_similarity = "similarity_and_sharedNFT_based_NFTcollection.pq"
+nft_level_similarity_newmethod = "similarity_secondMethod.pq"
 nft_category_similarity = "similarity_by_category.pq"
 nft_category_distance = "similarity_distance_by_category.pq"
 nft_collection_distance = "similarity_distance_by_nft.pq"
+nft_collection_distance_first_degree = "similarity_by_nft_kinds_1st_degree.pq"
+nft_collection_distance_second_degree = "similarity_by_nft_kinds_2nd_degree.pq"
+nft_collection_similarity = "similarity_by_nft_kinds.pq"
 
+regression_frame = "regression_frame_merged.pq"
+regression_frame_fe = "regression_frame_fe.pq"
 
 # %%
 voter_subset = sorted(
@@ -73,6 +80,7 @@ logger.info(f"{len(voter_subset)} voters.")
 dao_covoting = pd.read_parquet(data_dir / covoting_file).set_index(["voter1", "voter2"])
 dao_covoting = dao_covoting.loc[dao_covoting.index.levels[0].intersection(voter_subset)]
 
+dao_covoting["anysharedchoices"] = (dao_covoting["nsharedchoices"] > 0).astype(int)
 # %%
 dao_covoting_normalized = pd.read_parquet(
     data_dir / covoting_normalized_file
@@ -89,18 +97,53 @@ dao_coparticipation = dao_coparticipation.loc[
     dao_coparticipation.index.levels[0].intersection(voter_subset)
 ]
 
-# %%
-nft = pd.read_parquet(data_dir / nft_level_similarity).rename(
-    lambda x: x.replace(" ", "").lower(), axis=1
+dao_coparticipation["anyshareddaos"] = (dao_coparticipation["nshareddaos"] > 0).astype(
+    int
 )
-nft[["voter1", "voter2"]] = nft[["voter1", "voter2"]].apply(
-    lambda x: pd.Series(sorted(x)), axis=1
-)
-nft = nft.sort_values(["voter1", "voter2"]).set_index(["voter1", "voter2"])
-nft = nft.loc[nft.index.levels[0].intersection(voter_subset)]
-nft["anysharednft"] = (nft["numberofsharednft"] > 0).astype(int)
 
-# nft["cosinesimilarity"].hist(bins=100)
+# %%
+dao_coparticipation_normalized = pd.read_parquet(
+    data_dir / coparticipation_normalized_file
+).set_index(["voter1", "voter2"])
+dao_coparticipation_normalized = dao_coparticipation_normalized.loc[
+    dao_coparticipation_normalized.index.levels[0].intersection(voter_subset)
+]
+
+# %%
+if False:
+    nft = pd.read_parquet(data_dir / nft_level_similarity).rename(
+        lambda x: x.replace(" ", "").lower(), axis=1
+    )
+    nft[["voter1", "voter2"]] = nft[["voter1", "voter2"]].apply(
+        lambda x: pd.Series(sorted(x)), axis=1
+    )
+    nft = nft.sort_values(["voter1", "voter2"]).set_index(["voter1", "voter2"])
+    nft = nft.loc[nft.index.levels[0].intersection(voter_subset)]
+    nft["anysharednft"] = (nft["numberofsharednft"] > 0).astype(int)
+
+    # nft["cosinesimilarity"].hist(bins=100)
+
+# %%
+if False:
+    nft_newmethod = pd.read_parquet(data_dir / nft_level_similarity_newmethod).rename(
+        {"mutliplication": "multiplication"}, axis=1
+    )
+    nft_newmethod = nft_newmethod.sort_values(["voter1", "voter2"]).set_index(
+        ["voter1", "voter2"]
+    )
+    nft_newmethod = nft_newmethod.loc[
+        nft_newmethod.index.levels[0].intersection(voter_subset)
+    ]
+
+    nft_newmethod = pd.concat(
+        [
+            nft_newmethod,
+            nft_newmethod.divide(nft_newmethod.max(), axis=1).add_prefix("normalized_"),
+        ],
+        axis=1,
+    )
+
+    # nft["cosinesimilarity"].hist(bins=100)
 
 # %%
 
@@ -117,6 +160,43 @@ nftcat_euclidiandistance = nftcat_euclidiandistance.divide(
 # nftcat_euclidiandistance["similarity_category_distance"].hist(bins=100)
 
 # %%
+
+nft_collections_owned_count = pd.read_parquet(
+    data_dir / nft_collection_similarity
+).set_index(["voter1", "voter2"])
+nft_collections_owned_count = nft_collections_owned_count.loc[
+    nft_collections_owned_count.index.levels[0].intersection(voter_subset)
+]
+
+# nft_collections_owned_count["numeric_owned_nft_kinds"].hist(bins=100)
+
+# %%
+
+nft_firstdegree_similarity = (
+    pd.read_parquet(data_dir / nft_collection_distance_first_degree)
+    .set_index(["voter1", "voter2"])
+    .loc[:, ["pct_similar1st_avg"]]
+)
+nft_firstdegree_similarity = nft_firstdegree_similarity.loc[
+    nft_firstdegree_similarity.index.levels[0].intersection(voter_subset)
+]
+
+# nft_firstdegree_similarity["pct_similar1st_avg"].hist(bins=100)
+
+# %%
+
+nft_seconddegree_similarity = (
+    pd.read_parquet(data_dir / nft_collection_distance_second_degree)
+    .set_index(["voter1", "voter2"])
+    .loc[:, ["pct_similar2nd_avg"]]
+)
+nft_seconddegree_similarity = nft_seconddegree_similarity.loc[
+    nft_seconddegree_similarity.index.levels[0].intersection(voter_subset)
+]
+
+# nft_seconddegree_similarity["pct_similar1st_avg"].hist(bins=100)
+
+# %%
 nftcat_similarity = (
     pd.read_parquet(data_dir / nft_category_similarity)
     .set_index(["voter1", "voter2"])
@@ -125,6 +205,8 @@ nftcat_similarity = (
 nftcat_similarity = nftcat_similarity.loc[
     nftcat_similarity.index.levels[0].intersection(voter_subset)
 ]
+
+nftcat_similarity["total_shared_categories"] = nftcat_similarity.sum(axis=1)
 
 # %%
 nftcol_similarity = pd.read_parquet(data_dir / nft_collection_distance).set_index(
@@ -143,27 +225,37 @@ merged = (
     )
     .merge(dao_covoting_normalized, how="left", on=["voter1", "voter2"], validate="1:1")
     .merge(
+        dao_coparticipation_normalized,
+        how="left",
+        on=["voter1", "voter2"],
+        validate="1:1",
+    )
+    .merge(
         nftcat_euclidiandistance, how="left", on=["voter1", "voter2"], validate="1:1"
     )
-    .merge(nftcat_similarity, how="left", on=["voter1", "voter2"], validate="1:1")
     .merge(nftcol_similarity, how="left", on=["voter1", "voter2"], validate="1:1")
-    .merge(nft, how="left", on=["voter1", "voter2"], validate="1:1")
+    .merge(
+        nft_firstdegree_similarity, how="left", on=["voter1", "voter2"], validate="1:1"
+    )
+    .merge(
+        nft_seconddegree_similarity, how="left", on=["voter1", "voter2"], validate="1:1"
+    )
+    .merge(
+        nft_collections_owned_count, how="left", on=["voter1", "voter2"], validate="1:1"
+    )
+    .merge(nftcat_similarity, how="left", on=["voter1", "voter2"], validate="1:1")
+    # .merge(nft, how="left", on=["voter1", "voter2"], validate="1:1")
+    # .merge(nft_newmethod, how="left", on=["voter1", "voter2"], validate="1:1")
     .fillna(0)
 )
 
 merged = merged.loc[merged.index.get_level_values(1).isin(voter_subset)]
 merged = sm.add_constant(merged, prepend=False)
-# del dao, nft, nftcat_euclidiandistance, nftcat_similarity
-# %%
-# merged.reset_index().to_parquet(data_dir / "regression_frame_merged.pq", compression='brotli',index=False)
-merged = (
-    pd.read_parquet(data_dir / "regression_frame_merged.pq").set_index(
-        ["voter1", "voter2"]
-    )
-    # .sample(900_000)
+
+merged.reset_index().to_parquet(
+    data_dir / regression_frame, compression="brotli", index=False
 )
 
-# merged = merged.sample(100_000)
 # %%
 v1 = pd.get_dummies(
     merged.reset_index()[["voter1"]], columns=["voter1"], sparse=False, prefix="fe"
@@ -174,78 +266,13 @@ v2 = pd.get_dummies(
 )
 logger.info(f"voter2 FE done")
 
-fe = v1.add(v2, fill_value=0).astype(pd.SparseDtype("bool", 0)).sort_index(axis=1)
+fe = v1.add(v2, fill_value=0).sort_index(axis=1)
 fe.index = merged.index
 logger.info(f"Voter FE merged")
 del v1, v2
 
-# %%
-
-mod = sm.OLS(
-    # mod = Logit(
-    # merged["nsharedchoices"].add(1).apply(log),  # y
-    merged["nsharedchoicesnormalized"],  # y
-    # Without fixed effects
-    merged[
-        [
-            "similarity_art",
-            "similarity_collectibles",
-            "similarity_domain-names",
-            "similarity_music",
-            "similarity_photography-category",
-            "similarity_sports",
-            "similarity_trading-cards",
-            "similarity_utility",
-            "similarity_virtual-worlds",
-            # "similarity_category_distance",
-            # "similarity_nft_distance",
-            # "cosinesimilarity",
-            # "anysharednft",
-            # "numberofsharednft",
-            "const",
-        ]
-    ],
-    # With fixed effects
-    # pd.concat(
-    #     [
-    #         merged[
-    #             [
-    #                 "similarity_art",
-    #                 "similarity_collectibles",
-    #                 "similarity_domain-names",
-    #                 "similarity_music",
-    #                 "similarity_photography-category",
-    #                 "similarity_sports",
-    #                 "similarity_trading-cards",
-    #                 "similarity_utility",
-    #                 "similarity_virtual-worlds",
-    #                 # "similarity_category_distance",
-    #             ]
-    #         ],
-    #         fe,
-    #     ],
-    #     axis=1,
-    # ),  # X
-    hasconst=True,  # We include our own constants (either FE or a separate const)
+fe.reset_index().to_parquet(
+    data_dir / regression_frame_fe, compression="brotli", index=False
 )
-res = mod.fit(
-    cov_type="HC3",
-)
-# %%
-print(res.summary())
 
 # %%
-odf = pd.DataFrame(res.summary().tables[1])
-odf.columns = ["variable", *odf.iloc[0, 1:]]
-odf = odf.iloc[1:, :]
-odf = odf.set_index("variable")
-odf = odf.filter(regex="^(?!fe_)", axis=0)
-print(odf.to_markdown())
-# %%
-merged[["similarity_category_distance", "const"]].corr()
-# %%
-print(pd.DataFrame(res.summary().tables[0]).to_markdown(index=False))
-# %%
-merged[["similarity_category_distance", "const"]].hist()
-# %%
-sm.logit

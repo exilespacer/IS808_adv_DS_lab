@@ -54,10 +54,13 @@ data_dir = projectfolder / "data"
 dao_voter_mapping = "dao_voter_mapping.pq"
 temporary_pickle = "_temp.pickle"
 shared_daos_between_voters = "shared_daos_between_voters.pq"
+shared_daos_between_voters_normalized = "shared_daos_between_voters_normalized.pq"
 # list_of_voters_file = "list_of_voters_used_for_shared_dao_calculations.pq"
 binary_similarity = "dao_voters_similarity_binary.pq"
 numeric_similarity = "dao_voters_similarity_numeric.pq"
 relevant_nft_collections = "opensea_categories_top50.pq"
+numeric_similarity_normalized = "dao_voters_similarity_numeric_normalized.pq"
+binary_similarity_normalized = "dao_voters_similarity_binary_normalized.pq"
 
 
 # %%
@@ -197,6 +200,44 @@ def generate_or_load_sparse_data(
     return df
 
 
+def normalize_existing_parquet():
+    df = pd.read_parquet(data_dir / shared_daos_between_voters).to_dict(
+        orient="records"
+    )
+    df_dao_voters = (
+        (pd.read_parquet(data_dir / dao_voter_mapping, columns=["dao", "voterid"]))
+        .groupby("voterid")
+        .size()
+        .to_dict()
+    )
+
+    normalized_dict = {}
+    for row in tqdm(df):
+        v1 = row["voter1"]
+        v2 = row["voter2"]
+
+        nv1daos = df_dao_voters[v1]
+        nv2daos = df_dao_voters[v2]
+
+        normalized_dict[(v1, v2)] = (2 * row["nshareddaos"]) / (nv1daos + nv2daos)
+
+    ndf = pd.DataFrame.from_dict(
+        normalized_dict, orient="index", columns=["nshareddaosnormalized"]
+    ).reset_index()
+
+    ndf[["voter1", "voter2"]] = pd.DataFrame(ndf["index"].tolist(), index=ndf.index)
+    # Clean up
+    ndf = ndf.drop("index", axis=1).loc[
+        :, ["voter1", "voter2", "nshareddaosnormalized"]
+    ]
+
+    ndf.to_parquet(
+        data_dir / shared_daos_between_voters_normalized,
+        compression="brotli",
+        index=False,
+    )
+
+
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
 def batched(iterable, n):
     "Batch data into lists of length n. The last batch may be shorter."
@@ -274,7 +315,7 @@ def export_dense_dataframes(
             )
 
 
-def main(list_of_voters: list = [], force: bool = False, **kwargs):
+def main(list_of_voters: list = [], force: bool = False, normalize=False, **kwargs):
     """
     Performs all steps necessary to obtain results.
     Pass force=True to recreate all files.
@@ -282,6 +323,18 @@ def main(list_of_voters: list = [], force: bool = False, **kwargs):
     """
 
     export_dense_dataframes(list_of_voters=list_of_voters, force=force, **kwargs)
+
+    if normalize is True:
+        normalize_existing_parquet()
+
+        normalized_df = pd.read_parquet(
+            data_dir / shared_daos_between_voters_normalized
+        )
+        export_dense_dataframes(
+            normalized_df,
+            numeric_outputfile=numeric_similarity_normalized,
+            binary_outputfile=binary_similarity_normalized,
+        )
 
     logger.info("Done")
 
@@ -301,4 +354,5 @@ if __name__ == "__main__":
         sparse_outputfile=shared_daos_between_voters,
         binary_outputfile=binary_similarity,
         numeric_outputfile=numeric_similarity,
+        normalize=True,
     )
