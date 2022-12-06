@@ -64,7 +64,7 @@ regression_metadata_file = "regression_metadata.json"
 # %%
 
 
-def run_regression(dep_var, indep_var, with_fe, cov_type="HC3"):
+def run_regression(dep_var, indep_var, with_fe, cov_type="HC3", **kwargs):
     if with_fe is False:
         mod = sm.OLS(
             merged[dep_var],  # y
@@ -102,6 +102,8 @@ def run_regression(dep_var, indep_var, with_fe, cov_type="HC3"):
 def run_specification(specification):
 
     logger.info(f"{specification}")
+
+    r = run_regression(**specification)
 
     with open(regression_results_folder / specification["filename"], "wb") as f:
         pickle.dump(r, f)
