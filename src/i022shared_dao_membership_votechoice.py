@@ -154,13 +154,28 @@ if __name__ == "__main__":
         shared_daos = daos_by_voters[v1] & daos_by_voters[v2]
 
         total_votes_in_shared_daos = 0
+        v1_total_votes_in_shared_daos = 0
+        v2_total_votes_in_shared_daos = 0
+
         for shared_dao in shared_daos:
+
             total_votes_in_shared_daos += (
                 votes_by_voter_dao[(v1, shared_dao)]
                 + votes_by_voter_dao[(v2, shared_dao)]
             )
 
-        normalized_dict[(v1, v2)] = (2 * n_shared_choices) / total_votes_in_shared_daos
+            v1_total_votes_in_shared_daos += votes_by_voter_dao[(v1, shared_dao)]
+            v2_total_votes_in_shared_daos += votes_by_voter_dao[(v2, shared_dao)]
+
+        # Old version
+        # normalized_dict[(v1, v2)] = (2 * n_shared_choices) / total_votes_in_shared_daos
+
+        # Jaccard index
+        normalized_dict[(v1, v2)] = n_shared_choices / (
+            v1_total_votes_in_shared_daos
+            + v2_total_votes_in_shared_daos
+            - n_shared_choices
+        )
 
     df = pd.DataFrame.from_dict(
         normalized_dict, orient="index", columns=["nsharedchoicesnormalized"]

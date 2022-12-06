@@ -255,6 +255,7 @@ merged = sm.add_constant(merged, prepend=False)
 merged.reset_index().to_parquet(
     data_dir / regression_frame, compression="brotli", index=False
 )
+merged.reset_index().to_csv(data_dir / "rfme.csv.gz")
 
 # %%
 v1 = pd.get_dummies(
@@ -274,5 +275,7 @@ del v1, v2
 fe.reset_index().to_parquet(
     data_dir / regression_frame_fe, compression="brotli", index=False
 )
+fe.reset_index().to_csv(data_dir / "rffe.csv.gz")
 
 # %%
+logger.info(f"Done")

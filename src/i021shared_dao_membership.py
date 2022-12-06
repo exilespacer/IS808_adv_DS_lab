@@ -219,7 +219,13 @@ def normalize_existing_parquet():
         nv1daos = df_dao_voters[v1]
         nv2daos = df_dao_voters[v2]
 
-        normalized_dict[(v1, v2)] = (2 * row["nshareddaos"]) / (nv1daos + nv2daos)
+        # Old version
+        # normalized_dict[(v1, v2)] = (2 * row["nshareddaos"]) / (nv1daos + nv2daos)
+
+        # Jaccard index
+        normalized_dict[(v1, v2)] = row["nshareddaos"] / (
+            nv1daos + nv2daos - row["nshareddaos"]
+        )
 
     ndf = pd.DataFrame.from_dict(
         normalized_dict, orient="index", columns=["nshareddaosnormalized"]
