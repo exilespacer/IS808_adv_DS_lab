@@ -13,3 +13,7 @@ dependencies:
 - pyvis
 - scikit-learn 
 - tqdm
+- statsmodels
+- pip
+- pip:
+  - stargazer
