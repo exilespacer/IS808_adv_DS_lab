@@ -4,7 +4,7 @@ from pathlib import Path
 # Duplicate and comment out this row
 # It should be the top level folder of the repository
 # Sven
-projectfolder = Path("/project/IS808_adv_DS_lab")
+projectfolder = Path("/home/mannheim/svahlpah/notebooks/is808")
 # Mengnan
 # projectfolder = Path("/mypc/IS808_adv_DS_lab")
 
@@ -23,8 +23,9 @@ import statsmodels.api as sm
 from statsmodels.discrete.discrete_model import Logit
 import pandas as pd
 from math import log
-from stargazer.stargazer import Stargazer
-from tqdm import tqdm
+
+# from stargazer.stargazer import Stargazer
+# from tqdm import tqdm
 import pickle
 import json
 
@@ -53,8 +54,8 @@ data_dir = projectfolder / "data"
 
 specifications_file = "specifications.json"
 
-regression_frame = "regression_frame_merged.pq"
-regression_frame_fe = "regression_frame_fe.pq"
+regression_frame = "rfme.csv.gz"
+regression_frame_fe = "rffe.csv.gz"
 
 regression_results_folder = data_dir / "regression_results"
 regression_metadata_file = "regression_metadata.json"
@@ -107,7 +108,8 @@ def run_specifications(specifications):
     except:
         offset = 0
 
-    for i, specification in enumerate(tqdm(specifications)):
+    for i, specification in enumerate(specifications):
+        logger.warn(f"{specification}")
         r = run_regression(**specification)
 
         filename = f"regression_{str(i+offset).zfill(5)}.pickle"
@@ -154,78 +156,16 @@ def load_specifications():
 
 
 # %%
-merged = pd.read_parquet(data_dir / regression_frame).set_index(["voter1", "voter2"])
+merged = pd.read_csv(data_dir / regression_frame).set_index(["voter1", "voter2"])
 
 fe = (
-    pd.read_parquet(data_dir / regression_frame_fe)
+    pd.read_csv(data_dir / regression_frame_fe)
     .set_index(["voter1", "voter2"])
-    .astype(pd.SparseDtype("bool", 0))
+    .astype(int)
 )
 
-# %%
-pd.read_parquet(data_dir / regression_frame_fe).to_csv("rffe.csv.gz")
-pd.read_parquet(data_dir / "regression_frame_merged.pq").to_csv("rfme.csv.gz")
 # %%
 logger.info("Starting")
 specifications = load_specifications()
 run_specifications(specifications)
 logger.info("Done")
-
-# %%
-
-# %%
-Stargazer([load_regression_model(x["filename"]) for x in load_metadata()])
-
-# %%
-odf = pd.DataFrame(res.summary().tables[1])
-odf.columns = ["variable", *odf.iloc[0, 1:]]
-odf = odf.iloc[1:, :]
-odf = odf.set_index("variable")
-odf = odf.filter(regex="^(?!fe_)", axis=0)
-print(odf.to_markdown())
-# %%
-merged[["similarity_category_distance", "const"]].corr()
-# %%
-print(pd.DataFrame(res.summary().tables[0]).to_markdown(index=False))
-# %%
-merged[["similarity_category_distance", "const"]].hist()
-# %%
-sns.heatmap(
-    merged[
-        [
-            "similarity_art",
-            "similarity_collectibles",
-            "similarity_domain-names",
-            "similarity_music",
-            "similarity_photography-category",
-            "similarity_sports",
-            "similarity_trading-cards",
-            "similarity_utility",
-            "similarity_virtual-worlds",
-            "similarity_category_distance",
-            "similarity_nft_distance",
-            "cosinesimilarity",
-            "anysharednft",
-            "numberofsharednft",
-            "multiplication",
-            "summation",
-            "maximum",
-            "minimum",
-            # "const",
-        ]
-    ].corr()
-)
-# %%
-import seaborn as sns
-
-# %%
-merged[
-    [
-        "multiplication",
-        "summation",
-        "maximum",
-        "minimum",
-        # "const",
-    ]
-].hist()
-# %%
