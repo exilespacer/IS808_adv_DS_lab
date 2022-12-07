@@ -124,5 +124,23 @@
         "comment": "requested by chia-yi",
         "table_group": 3,
         "filename": "regression_00010.pickle"
+    },
+    {
+        "dep_var": "nsharedchoicesnormalized",
+        "indep_var": [
+            "art",
+            "collectibles",
+            "domainnames",
+            "music",
+            "photographycategory",
+            "sports",
+            "tradingcards",
+            "utility",
+            "virtualworlds"
+        ],
+        "with_fe": true,
+        "comment": "Stefano wants this table in the paper",
+        "table_group": 4,
+        "filename": "regression_00011.pickle"
     }
 ]
