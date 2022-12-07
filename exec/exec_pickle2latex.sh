@@ -3,8 +3,10 @@
 #$ -pe onenode 2
 #$ -l m_mem_free=24G
 #$ -m abe
-#$ -M yen.chiayi@gmail.com
+#$ -M vahlpahl@uni-mannheim.de
 echo "Starting Job at `date`."
+echo "git commit: "
+git rev-parse --short HEAD
 
 # Source global definitions
 if [ -f /etc/bashrc ]; then
@@ -29,3 +31,6 @@ else
 fi
 unset __conda_setup
 # <<< conda initialize <<<
+conda activate IS808;
+
+time(python -m util.pickle2latex) &> log/util_pickle2latex.log;

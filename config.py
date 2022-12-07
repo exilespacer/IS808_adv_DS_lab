@@ -10,7 +10,7 @@ from pathlib import Path
 # projectfolder = Path("/mypc/IS808_adv_DS_lab")
 
 # Chia-Yi
-projectfolder = Path("/scratch/mannheim/cyyen/IS808_adv_DS_lab")
+projectfolder = Path("/scratch/mannheim/sv/IS808_adv_DS_lab")
 
 import os
 import sys

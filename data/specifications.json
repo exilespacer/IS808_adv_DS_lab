@@ -1,0 +1,128 @@
+[
+    {
+        "dep_var": "nshareddaosnormalized",
+        "indep_var": [
+            "categorydistance",
+            "collectiondistance"
+        ],
+        "with_fe": true,
+        "comment": "as in presentation",
+        "table_group": 1,
+        "filename": "regression_00000.pickle"
+    },
+    {
+        "dep_var": "nshareddaosnormalized",
+        "indep_var": [
+            "collectiondistance"
+        ],
+        "with_fe": true,
+        "comment": "as mentioned by Chen, cannot hold other variable constant - robustness check",
+        "table_group": 1,
+        "filename": "regression_00001.pickle"
+    },
+    {
+        "dep_var": "nshareddaosnormalized",
+        "indep_var": [
+            "categorydistance"
+        ],
+        "with_fe": true,
+        "comment": "as mentioned by Chen, cannot hold other variable constant - robustness check",
+        "table_group": 1,
+        "filename": "regression_00002.pickle"
+    },
+    {
+        "dep_var": "nsharedchoicesnormalized",
+        "indep_var": [
+            "categorydistance",
+            "collectiondistance"
+        ],
+        "with_fe": true,
+        "comment": "as in presentation",
+        "table_group": 2,
+        "filename": "regression_00003.pickle"
+    },
+    {
+        "dep_var": "nsharedchoicesnormalized",
+        "indep_var": [
+            "collectiondistance"
+        ],
+        "with_fe": true,
+        "comment": "as mentioned by Chen, cannot hold other variable constant - robustness check",
+        "table_group": 2,
+        "filename": "regression_00004.pickle"
+    },
+    {
+        "dep_var": "nsharedchoicesnormalized",
+        "indep_var": [
+            "categorydistance"
+        ],
+        "with_fe": true,
+        "comment": "as mentioned by Chen, cannot hold other variable constant - robustness check",
+        "table_group": 2,
+        "filename": "regression_00005.pickle"
+    },
+    {
+        "dep_var": "nshareddaosnormalized",
+        "indep_var": [
+            "firstdegreesimilarity",
+            "seconddegreesimilarity"
+        ],
+        "with_fe": true,
+        "comment": "as in presentation",
+        "table_group": 3,
+        "filename": "regression_00006.pickle"
+    },
+    {
+        "dep_var": "nsharedchoicesnormalized",
+        "indep_var": [
+            "firstdegreesimilarity",
+            "seconddegreesimilarity"
+        ],
+        "with_fe": true,
+        "comment": "as in presentation",
+        "table_group": 3,
+        "filename": "regression_00007.pickle"
+    },
+    {
+        "dep_var": "nshareddaosnormalized",
+        "indep_var": [
+            "art",
+            "collectibles",
+            "domainnames",
+            "music",
+            "photographycategory",
+            "sports",
+            "tradingcards",
+            "utility",
+            "virtualworlds"
+        ],
+        "with_fe": true,
+        "comment": "Stefano wants this table in the paper",
+        "table_group": 4,
+        "filename": "regression_00008.pickle"
+    },
+    {
+        "dep_var": "nshareddaosnormalized",
+        "indep_var": [
+            "firstdegreesimilarity",
+            "seconddegreesimilarity",
+            "firstsecondinteraction"
+        ],
+        "with_fe": true,
+        "comment": "as in presentation",
+        "table_group": 3,
+        "filename": "regression_00009.pickle"
+    },
+    {
+        "dep_var": "nsharedchoicesnormalized",
+        "indep_var": [
+            "firstdegreesimilarity",
+            "seconddegreesimilarity",
+            "firstsecondinteraction"
+        ],
+        "with_fe": true,
+        "comment": "requested by chia-yi",
+        "table_group": 3,
+        "filename": "regression_00010.pickle"
+    }
+]

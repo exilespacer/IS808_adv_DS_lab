@@ -1,9 +1,9 @@
 import config as cfg 
-dir_local = cfg.projectfolder / 'wrds'
+dir_local = cfg.projectfolder / 'exec'
 
 import os
 env_name = os.environ.get('ENV_NAME', 'IS808')
-email = os.environ.get('EMAIL', 'yen.chiayi@gmail.com')
+email = os.environ.get('EMAIL', 'vahlpahl@uni-mannheim.de')
 
 import io
 from src.i042regression import load_specifications, add_filenames

@@ -1,9 +1,10 @@
 from pathlib import Path
+from config import projectfolder
 
 # Duplicate and comment out this row
 # It should be the top level folder of the repository
 # WRDS
-projectfolder = Path("/scratch/mannheim/cyyen/IS808_adv_DS_lab")
+# projectfolder = Path("/scratch/mannheim/sv/IS808_adv_DS_lab")
 
 import os
 import sys
@@ -46,8 +47,8 @@ data_dir = projectfolder / "data"
 
 specifications_file = "specifications.json"
 
-regression_frame = "rfme.csv.gz"
-regression_frame_fe = "rffe.csv.gz"
+regression_frame = "regression_frame_merged.pq"
+regression_frame_fe = "regression_frame_fe.pq"
 
 regression_results_folder = data_dir / "regression_results"
 regression_metadata_file = "regression_metadata.json"
@@ -209,10 +210,10 @@ if __name__ == '__main__':
     spec = specifications[spec_id]
     print(spec)
 
-    merged = pd.read_csv(data_dir / regression_frame).set_index(["voter1", "voter2"])
+    merged = pd.read_parquet(data_dir / regression_frame).set_index(["voter1", "voter2"])
 
     fe = (
-        pd.read_csv(data_dir / regression_frame_fe)
+        pd.read_parquet(data_dir / regression_frame_fe)
         .set_index(["voter1", "voter2"])
         .astype(int)
     )
