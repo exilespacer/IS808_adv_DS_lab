@@ -39,6 +39,7 @@ votes_dir = data_dir / "snapshot_votes"
 filename_spaces = "snapshot_spaces.json"
 filename_votes = "votes.json"
 unique_voters_file = data_dir / "unique_voters.json"
+all_voters_with_voterid = "all_voters_with_voterid.pq"
 
 
 # %%
@@ -122,4 +123,12 @@ with open(unique_voters_file, "w") as fp:
 
 # %%
 
+with open(unique_voters_file, "r") as fp:
+    vset = json.load(fp)
+# %%
+
+voters = pd.DataFrame(vset).reset_index()
+voters.columns = ["voterid", "requestedaddress"]
+voters.to_parquet(data_dir / all_voters_with_voterid, compression="brotli", index=False)
+# %%
 # For the next steps see download_data_share.py

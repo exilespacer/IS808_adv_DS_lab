@@ -1,6 +1,17 @@
+.*
 *.csv
 *.json
 *.pq
+*.parquet
+*.log
+*.joblib
+*.pickle
+*.har
+
+*.png
+*.jpg
+*.svg
+*.pdf
 
 vis/*.gexf
 vis/*.nx
