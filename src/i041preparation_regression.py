@@ -187,7 +187,7 @@ nft_firstdegree_similarity = nft_firstdegree_similarity.loc[
 # nft_firstdegree_similarity["pct_similar1st_avg"].hist(bins=100)
 
 # %%
-
+# Chia-Yi: Update the second degree similarity here
 nft_seconddegree_similarity = (
     pd.read_parquet(data_dir / nft_collection_distance_second_degree)
     .set_index(["voter1", "voter2"])
@@ -267,7 +267,7 @@ merged = (
 )
 
 merged = merged.loc[merged.index.get_level_values(1).isin(voter_subset)]
-merged = sm.add_constant(merged, prepend=False)
+
 
 merged = merged.rename(
     {
@@ -289,6 +289,12 @@ merged = merged.rename(
     axis=1,
 )
 
+merged["firstsecondinteraction"] = merged["firstdegreesimilarity"].multiply(
+    merged["seconddegreesimilarity"]
+)
+
+merged = sm.add_constant(merged, prepend=False)
+# %%
 merged.reset_index().to_parquet(
     data_dir / regression_frame, compression="brotli", index=False
 )
