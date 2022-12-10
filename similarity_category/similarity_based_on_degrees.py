@@ -10,15 +10,15 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 from itertools import combinations
-from more_itertools import chunked
 import os
+METHOD = os.environ.get('METHOD', 'max') # possible inputs: max, min, average
 
 from similarity_category.similarity_nft import compute_similarity_nft_kinds, load_similarity_nft_kinds
 import config as cfg 
 dir_local_data = cfg.dir_similarity_category / "data"
 
 path_similarity_nft_1st_degree = cfg.dir_data / "similarity_by_nft_kinds_1st_degree.pq"
-path_similarity_nft_2nd_degree = cfg.dir_data / "similarity_by_nft_kinds_2nd_degree.pq"
+path_similarity_nft_2nd_degree = cfg.dir_data / f"similarity_by_nft_kinds_2nd_degree_{METHOD}.pq"
 
 # input
 path_voters = cfg.dir_data / "relevant_voters_with_voterid.pq"
@@ -110,7 +110,6 @@ def load_nft_1st_degree_similarity() -> pd.DataFrame:
     df = pd.read_parquet(path_similarity_nft_1st_degree)
     return df
 
-
 def get_voter_idx_mapping():
     df_voters = pd.read_parquet(path_voters, columns = ['voterid'])
     voters = np.sort(df_voters.voterid.unique())
@@ -143,17 +142,46 @@ def get_matrix_1st_degree() -> np.array:
         m_1st_degree[j, i] = row[3] 
     return m_1st_degree
 
-def get_matrix_2nd_degree() -> np.array:
+def get_matrix_2nd_degree(method = 'average') -> np.array:
     # get 1st degree similarity
     m_1st_degree = get_matrix_1st_degree()
     for idx in range(len(m_1st_degree)):
         m_1st_degree[idx, idx] = 1
 
-    # get 2nd degree similarity
-    m_2nd_degree = (np.matmul(m_1st_degree, m_1st_degree) - 2 * m_1st_degree)/(len(m_1st_degree))
+    # get 2nd degree similarity  
+    if method == 'average':    
+        m_2nd_degree = (np.matmul(m_1st_degree, m_1st_degree) - 2 * m_1st_degree)/(len(m_1st_degree))
+    elif method == 'max':
+        m_2nd_degree = get_matrix_2nd_degree_method(m_1st_degree, method=np.max)
+    elif method == 'min':
+        m_2nd_degree = get_matrix_2nd_degree_method(m_1st_degree, method=np.min)
+    else:
+        raise NotImplementedError
     # assign diagonal to be zero
     for idx in range(len(m_2nd_degree)):
         m_2nd_degree[idx, idx] = 0 # TODO: what's the 2nd degree similarity between me and myself?
+    return m_2nd_degree
+
+def get_matrix_2nd_degree_method(m_1st_degree: np.array, method = np.max) -> np.array:
+    n = len(m_1st_degree)
+    for idx in range(n):
+        m_1st_degree[idx, idx] = 0
+    m_2nd_degree = np.zeros(shape=m_1st_degree.shape)
+    for i in tqdm(range(n)):
+        for j in range(n):
+            if i==j:
+                continue
+            row = m_1st_degree[i,:]
+            row[j] = 0            
+            col = m_1st_degree[:,j]
+            col[i] = 0
+
+            res = method(row * col)
+            m_2nd_degree[i, j] = res
+    return m_2nd_degree
+
+def get_matrix_2nd_degree_avg(m_1st_degree: np.array) -> np.array:
+    m_2nd_degree = (np.matmul(m_1st_degree, m_1st_degree) - 2 * m_1st_degree)/(len(m_1st_degree))
     return m_2nd_degree
 
 def get_directed_1st_degree_similarity():
@@ -164,7 +192,7 @@ def get_directed_1st_degree_similarity():
     return df
 
 def compute_nft_2nd_degree_similarity() -> pd.DataFrame:
-    m_2nd_degree = get_matrix_2nd_degree()
+    m_2nd_degree = get_matrix_2nd_degree(method = METHOD)
 
     # make it dataframe
     voters_idx = get_voter_idx_mapping()
@@ -204,7 +232,7 @@ def main():
     compute_nft_1st_degree_similarity()
     compute_nft_2nd_degree_similarity()
     
-
 if __name__ == '__main__':
+    # METHOD=average python -m similarity_category.similarity_based_on_degrees
     main()
 
