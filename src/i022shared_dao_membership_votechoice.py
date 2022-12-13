@@ -27,6 +27,7 @@ from src.i021shared_dao_membership import (
     convert_pickle_to_parquet,
     export_dense_dataframes,
 )
+from src.i018relevant_voters import votes_after_date
 
 # Gets or creates a logger
 import logging
@@ -70,8 +71,10 @@ if __name__ == "__main__":
     df_dao_voters = (
         pd.read_parquet(
             data_dir / dao_voter_mapping,
-            columns=["proposalid", "dao", "choice", "voterid"],
+            columns=["proposalid", "dao", "choice", "voterid", "timestamp"],
         )
+        .query(f"timestamp > '{votes_after_date}'")
+        .drop("timestamp", axis=1)
         .set_index("voterid")
         .sort_index()
     )

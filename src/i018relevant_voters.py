@@ -55,6 +55,7 @@ dao_voter_mapping = "dao_voter_mapping.pq"
 opensea_categories_file = "opensea_categories_top25.pq"
 
 relevant_voters_with_voterid = "relevant_voters_with_voterid.pq"
+votes_after_date = "2022-08-01"
 
 # %%
 
@@ -74,15 +75,14 @@ def get_relevant_voters(
     ).drop_duplicates(subset=["dao", "voterid", "proposalid"])
 
     nft_data = pd.read_parquet(
-        data_dir / opensea_downloads, columns=["voterid", "slug"]
+        data_dir / opensea_downloads, columns=["voterid", "slug", "owned_asset_count"]
     ).drop_duplicates()
-    voters_with_nfts = nft_data.groupby("voterid").size()
 
     if nft_projects is not None:
         nft_projects_df = pd.read_parquet(data_dir / nft_projects)
 
     return get_relevant_voters_given_data(
-        voters_with_nfts=voters_with_nfts,
+        # voters_with_nfts=voters_with_nfts,
         nft_data=nft_data,
         nft_projects_df=nft_projects_df,
         df_dao_voters=df_dao_voters,
@@ -92,28 +92,32 @@ def get_relevant_voters(
 
 def get_relevant_voters_given_data(
     minimum_number_of_votes=0,
-    maximum_number_of_nfts=100_000_000,
     minimum_number_of_nfts=0,
+    maximum_number_of_nft_items=100_000_000,
     votes_after_date="2019-01-01",
-    voters_with_nfts=None,
+    # voters_with_nfts=None,
     nft_data=None,
     nft_projects_df=None,
     df_dao_voters=None,
 ):
     # Information
     logger.info(
-        f"NFT: {minimum_number_of_nfts}-{maximum_number_of_nfts} Min votes: {minimum_number_of_votes} File provided: {nft_projects is not None}"
+        f"NFT: {minimum_number_of_nfts}-{maximum_number_of_nft_items} Min votes: {minimum_number_of_votes} File provided: {nft_projects_df is not None}"
     )
 
     # Compute the set for number of NFTs
-    voters_with_nfts_set = set(
-        voters_with_nfts[
-            (
-                (voters_with_nfts >= minimum_number_of_nfts)
-                & (voters_with_nfts <= maximum_number_of_nfts)
-            )
-        ].index
+    nft_collections = (
+        nft_data.groupby("voterid")["slug"]
+        .size()
+        .loc[lambda x: x >= minimum_number_of_nfts]
     )
+    nft_items = (
+        nft_data.groupby("voterid")["owned_asset_count"]
+        .sum()
+        .loc[lambda x: x <= maximum_number_of_nft_items]
+    )
+
+    voters_with_nfts_set = set(nft_collections.index) & set(nft_items.index)
 
     # Compute the set for NFT projects
     if nft_projects_df is not None:
@@ -163,26 +167,26 @@ if __name__ == "__main__":
     relevant_voters = get_relevant_voters(
         minimum_number_of_votes=20,
         minimum_number_of_nfts=20,
-        maximum_number_of_nfts=10_000,
+        maximum_number_of_nft_items=10_000,
         nft_projects=opensea_categories_file,
-        votes_after_date="2022-08-01",
+        votes_after_date=votes_after_date,
     )
     logger.info(f"{len(relevant_voters)} relevant voters")
-
-    all_voters = pd.read_parquet(data_dir / all_voters_with_voterid).set_index(
-        "voterid"
-    )
-    rv = all_voters[all_voters.index.isin(relevant_voters)].reset_index()
-    rv.to_parquet(
-        data_dir / relevant_voters_with_voterid, compression="brotli", index=False
-    )
+    if True:
+        all_voters = pd.read_parquet(data_dir / all_voters_with_voterid).set_index(
+            "voterid"
+        )
+        rv = all_voters[all_voters.index.isin(relevant_voters)].reset_index()
+        rv.to_parquet(
+            data_dir / relevant_voters_with_voterid, compression="brotli", index=False
+        )
 
     # %%
     # Because this part is run rarely (expected as of now), manually run the data loading stuff from get_relevant_voters
     cd = {
         "minimum_number_of_votes": range(1, 40, 3),
         "minimum_number_of_nfts": range(1, 40, 3),
-        "maximum_number_of_nfts": range(100, 100_000, 5_000),
+        "maximum_number_of_nft_items": range(100, 100_000, 5_000),
         "votes_after_date": [
             "2021-01-01",
             "2022-01-01",
@@ -194,7 +198,7 @@ if __name__ == "__main__":
     default = {
         "minimum_number_of_votes": 20,
         "minimum_number_of_nfts": 20,
-        "maximum_number_of_nfts": 10000,
+        "maximum_number_of_nft_items": 10000,
         "votes_after_date": "2022-08-01",
     }
 
