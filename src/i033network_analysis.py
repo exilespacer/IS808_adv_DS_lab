@@ -63,38 +63,45 @@ print (df_network_voter_nodes.dtypes)
 G_voter = nx.from_pandas_edgelist(
     df_network_voter_edges, source="voter1", target="voter2", edge_attr= True,
 )
-
 # nx.set_node_attributes(G_voter, pd.Series(df_network_voter_nodes.taste, index=df_network_voter_nodes.voterid).to_dict(), 'taste')
 
-#
-list(G_voter.nodes)
-list(G_voter.edges)
-G_voter.nodes
 
-for i in sorted(G_voter.nodes()):
-    G_voter.nodes[i]['taste'] = df_network_voter_nodes.taste[i]
+""" list(G_voter.nodes)
+list(G_voter.edges)
+G_voter.number_of_nodes()
+G_voter.number_of_edges()
+
+# for i in sorted(G_voter.nodes()):
+#    G_voter.nodes[i]['taste'] = df_network_voter_nodes.taste[i]
 
 node_colors = {
-    'art': 'blue', 
-    'domain-names': 'red', 
-    'trading-cards': 'yellow', 
-    'virtual-worlds': 'pink',
-    'collectibles': 'green',
-    'photography-category': 'black',
-    'sports': 'purple'
+    'art': '#A4BE7B', 
+    'domain-names': '#DAE2B6', 
+    'trading-cards': '#CCD6A6', 
+    'virtual-worlds': '#22A39F',
+    'collectibles': '#5F8D4E',
+    'music': '#E5D9B6',
+    'utility':'#285430',
+    'photography-category': '#F4EAD5',
+    'sports': '#FFFBE9'
     }
 
 df_network_voter_nodes['node_color'] = df_network_voter_nodes['taste'].map(node_colors)
 node_attr = df_network_voter_nodes.set_index('voterid').to_dict(orient = 'index')
-nx.set_node_attributes(G_voter, node_attr)
+list(node_attr.keys())[0]
+list(node_attr.values())[0]['taste']
+print(len(node_attr))
+nx.set_node_attributes(G_voter, node_attr) """
 
 
 nx.write_gexf(G_voter,f"{dir_path}/gragh_voter.gexf")
 with io.open(f"{dir_path}/gragh_voter.nx", mode="wb") as f:
     pickle.dump(G_voter, f)
 
+# The above session are commented out because the node attributess are obviously mismatched in Gephi with the .gexf file generated above.
+# Thus I manually imported the 'vis\vis_network_voter_nodes.csv' file into Gephi as node table.
 # %%
-plt.figure(figsize=(6,6))
+""" plt.figure(figsize=(6,6))
 nx.draw(G_voter,
     pos = nx.spring_layout(G_voter, weight = 'nshareddaos_y'),
     node_size = 200,
@@ -108,4 +115,4 @@ plt.show()
 net_voter = Network(height="1200px", width="100%", notebook=True)
 net_voter.repulsion()
 net_voter.from_nx(G_voter)
-net_voter.show(f"{dir_path}/pyvis_nx_voter.html")
+net_voter.show(f"{dir_path}/pyvis_nx_voter.html") """
