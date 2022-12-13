@@ -68,6 +68,24 @@ df_voter = df_raw.groupby("voterid").agg(
 )
 df_voter.head()
 
+df_voter_nodes =pd.read_csv(f"{data_dir}/voter_taste_category.csv")
+df_voter_nodes.count()
+df_voter_nodes.head()
+
+df_network_voter_nodes = pd.merge(
+    df_voter,
+    df_voter_nodes,
+    left_on="voterid",
+    right_on="voter",
+    how="inner",
+    validate="1:1",
+)
+df_network_voter_nodes.rename({'voter': 'voterid'}, axis=1, inplace=True)
+df_network_voter_nodes = df_network_voter_nodes.set_index(['voterid'])
+df_network_voter_nodes.count()
+df_network_voter_nodes.head()
+df_network_voter_nodes.to_csv(f"{dir_path}/vis_network_voter_nodes.csv", index=True)
+
 
 df_voter_stats = (
     df_voter.assign(

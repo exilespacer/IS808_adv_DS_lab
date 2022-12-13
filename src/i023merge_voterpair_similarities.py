@@ -187,6 +187,6 @@ df_network_voter_full = df_codao_dummy.merge(
 
 df_network_voter_full = df_network_voter_full*1
 # df_network_voter_full = df_network_voter_full.fillna(0)
-df_network_voter_full.to_csv(f"{dir_path}/vis_network_voter.csv", index=True)
+df_network_voter_full.to_csv(f"{dir_path}/vis_network_voter_edges.csv", index=True)
 
 
