@@ -35,14 +35,19 @@ from itertools import permutations
 from tqdm import tqdm
 
 # %% Load Data --Dyad 
-df_covoting0 = pd.read_parquet(data_dir/"dao_voters_similarity_votechoice_binary.pq").sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
-df_covoting0.info()
-df_covoting0.head()
-
-df_covoting1 = pd.read_parquet(data_dir/"dao_voters_similarity_votechoice_numeric.pq").sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
+df_covoting1 = pd.read_parquet(data_dir/"dao_voters_similarity_votechoice_binary.pq").sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
 df_covoting1.info()
 df_covoting1.head()
 
+df_covoting2 = pd.read_parquet(data_dir/"dao_voters_similarity_votechoice_numeric.pq").sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
+df_covoting2.info()
+df_covoting2.head()
+
+df_covoting3 = pd.read_parquet(data_dir/"dao_voters_similarity_votechoice_normalized_numeric.pq").sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
+df_covoting3.info()
+df_covoting3.head()
+df_covoting3.describe()
+# %%
 df_codao_dummy = pd.read_parquet(data_dir/"dao_voters_similarity_binary.pq").sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
 df_codao_dummy.info()
 df_codao_dummy.head()
@@ -53,14 +58,19 @@ df_codao_numeric.info()
 df_codao_numeric.head()
 df_codao_numeric.describe()
 
-df_similarity0 = pd.read_parquet(data_dir/"similarity_and_sharedNFT_based_NFTcollection.pq").rename(
+df_codao_n_normalized = pd.read_parquet(data_dir/"dao_voters_similarity_numeric_normalized.pq").sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
+df_codao_n_normalized.info()
+df_codao_n_normalized.head()
+df_codao_n_normalized.describe()
+# %%
+""" df_similarity0 = pd.read_parquet(data_dir/"similarity_by_nft_kinds.pq").rename(
     lambda x: x.replace(" ","").lower(),axis = 1
 )
 df_similarity0 =df_similarity0.sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
 df_similarity0.info()
 df_similarity0
 with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-    print(df_similarity0)
+    print(df_similarity0) """
 
 df_similarity1 = pd.read_parquet(data_dir/"similarity_by_category.pq").sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
 df_similarity1.info()
@@ -78,9 +88,19 @@ df_similarity4 = pd.read_parquet(data_dir/"similarity_distance_by_nft.pq").sort_
 df_similarity4.info()
 df_similarity4.head()
 
-df_similarity5 = pd.read_parquet(data_dir/"similarity_secondMethod.pq").sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
-df_similarity5.info()
-df_similarity5.head()
+
+# %%
+df_1st_similarity = pd.read_parquet(data_dir/"similarity_by_nft_kinds_1st_degree.pq").sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
+df_1st_similarity.info()
+df_1st_similarity.head()
+
+df_2nd_similarity1 = pd.read_parquet(data_dir/"similarity_by_nft_kinds_2nd_degree_average.pq").sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
+df_2nd_similarity1.info()
+df_2nd_similarity1.head()
+
+df_2nd_similarity2 = pd.read_parquet(data_dir/"similarity_by_nft_kinds_2nd_degree_average.pq").sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
+df_2nd_similarity2.info()
+df_2nd_similarity2.head()
 
 # %% Load Data --Node
 def get_df_raw():
@@ -100,7 +120,7 @@ def get_df_raw():
     df_opensea_categories_top50.info()
     df_opensea_categories_top50.head()
 
-    df_filter = pd.read_parquet(data_dir/"relevant_voters_with_voterid.pq") # 1148 voterid
+    df_filter = pd.read_parquet(data_dir/"relevant_voters_with_voterid.pq") # 1124 voterid
     df_filter.info()
     df_filter.head()
 
@@ -146,7 +166,39 @@ df_voter_nft.to_csv(f"{data_dir}/df_voter_nft.csv", index=False)
 # # Voter network
 df_voter_nft =pd.read_csv(f"{data_dir}/df_voter_nft.csv")
 
-# %% voter- distinct nft
+df = pd.read_parquet(data_dir/"regression_frame_merged.pq").sort_values(["voter1","voter2"]).set_index(["voter1","voter2"])
+df.head()
+# df_network_voter = df_network_voter.dropna
+
+df_network_voter_full = df.merge(
+    df_codao_dummy, how = 'left', on =['voter1','voter2']).merge(
+    df_codao_numeric, how = 'left', on =['voter1','voter2']).merge(
+    df_codao_n_normalized, how = 'left', on =['voter1','voter2']).merge(    
+    df_covoting1,how = 'left', on =['voter1','voter2']).merge(
+    df_covoting2,how = 'left', on =['voter1','voter2']).merge(
+    df_covoting3, how = 'left', on =['voter1','voter2']).merge(
+    df_similarity1,how = 'left', on =['voter1','voter2']).merge(
+    df_similarity2,how = 'left', on =['voter1','voter2']).merge(
+    df_similarity3,how = 'left', on =['voter1','voter2']).merge(
+    df_similarity4,how = 'left', on =['voter1','voter2']
+    ) 
+
+
+
+""" df_network_voter_full = df_network_voter.merge(
+    df_codao_dummy,how = 'left', on =['voter1','voter2']).merge(
+    df_covoting1,how = 'left', on =['voter1','voter2']).merge(
+    df_covoting0,how = 'left', on =['voter1','voter2']).merge(
+    df_similarity0,how = 'left', on =['voter1','voter2']).merge(
+    df_similarity2,how = 'left', on =['voter1','voter2']
+    ) """
+
+df_network_voter_full = df_network_voter_full*1
+# df_network_voter_full = df_network_voter_full.fillna(0)
+df_network_voter_full.to_csv(f"{dir_path}/vis_network_voter_edges.csv", index=True)
+
+
+""" # %% voter- distinct nft
 network_voters = {}
 for grp, df_grp in tqdm(df_voter_nft.groupby("slug")):
     for p in permutations(sorted(df_grp.voterid.unique()), 2):
@@ -161,32 +213,4 @@ df_network_voter = pd.DataFrame(
         for (source, target), weight in network_voters.items()
     ]
 )
-df_network_voter = df_network_voter.sort_values(['voter1','voter2']).set_index(['voter1','voter2'])
-# df_network_voter = df_network_voter.dropna
-
-df_network_voter_full = df_codao_dummy.merge(
-    df_codao_numeric,how = 'left', on =['voter1','voter2']).merge(
-    df_covoting1,how = 'left', on =['voter1','voter2']).merge(
-    df_covoting0,how = 'left', on =['voter1','voter2']).merge(
-    df_similarity0,how = 'left', on =['voter1','voter2']).merge(
-    df_similarity1,how = 'left', on =['voter1','voter2']).merge(
-    df_similarity2,how = 'left', on =['voter1','voter2']).merge(
-    df_similarity3,how = 'left', on =['voter1','voter2']).merge(
-    df_similarity4,how = 'left', on =['voter1','voter2']).merge(
-    df_similarity5,how = 'left', on =['voter1','voter2']).merge(
-    df_network_voter, how = 'left', on =['voter1','voter2']
-    ) 
-
-""" df_network_voter_full = df_network_voter.merge(
-    df_codao_dummy,how = 'left', on =['voter1','voter2']).merge(
-    df_covoting1,how = 'left', on =['voter1','voter2']).merge(
-    df_covoting0,how = 'left', on =['voter1','voter2']).merge(
-    df_similarity0,how = 'left', on =['voter1','voter2']).merge(
-    df_similarity2,how = 'left', on =['voter1','voter2']
-    ) """
-
-df_network_voter_full = df_network_voter_full*1
-# df_network_voter_full = df_network_voter_full.fillna(0)
-df_network_voter_full.to_csv(f"{dir_path}/vis_network_voter.csv", index=True)
-
-
+df_network_voter = df_network_voter.sort_values(['voter1','voter2']).set_index(['voter1','voter2']) """
