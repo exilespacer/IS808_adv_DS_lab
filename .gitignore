@@ -9,6 +9,8 @@
 *.har
 
 !specifications.json
+!regression_frame_merged.pq
+!regression_frame_fe.pq
 
 *.png
 *.jpg
