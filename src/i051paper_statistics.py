@@ -24,6 +24,7 @@ sys.path.insert(0, "")  # Required for loading modules
 import statsmodels.api as sm
 from statsmodels.discrete.discrete_model import Logit
 import pandas as pd
+import numpy as np
 from math import log
 
 # from stargazer.stargazer import Stargazer
@@ -66,7 +67,14 @@ merged.groupby(["nsharedcategories"])[["anysharedchoices", "anyshareddaos"]].agg
     ["mean", "size"]
 )
 # %%
-merged.mean()
-# %%
-merged[["categorydistance", "collectiondistance"]].corr()
+nbins = 10
+
+bins = np.arange(0, 1 + int(1 / nbins), 1 / nbins)
+labels = [f"{round(i,1)}-{round(j,1)}" for i, j in zip(bins[:-1], bins[1:])]
+
+merged["bin"] = pd.cut(
+    merged["collectiondistance"], bins=bins, labels=labels, right=False, ordered=False
+)
+merged.groupby(["bin"])[["anysharedchoices", "anyshareddaos"]].mean().plot.bar()
+
 # %%
