@@ -8,6 +8,8 @@
 *.pickle
 *.har
 
+!specifications.json
+
 *.png
 *.jpg
 *.svg

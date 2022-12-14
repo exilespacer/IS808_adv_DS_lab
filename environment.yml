@@ -5,11 +5,11 @@ channels:
 dependencies:
 - python
 - pandas
-- numpy
 - pyarrow
 - fastparquet
 - more-itertools
-- networkx
-- pyvis
-- scikit-learn 
 - tqdm
+- statsmodels
+- pip
+- pip:
+  - stargazer
