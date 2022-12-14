@@ -27,7 +27,7 @@ import collections
 import pickle
 from math import ceil
 
-from src.i018relevant_voters import relevant_voters_with_voterid
+from src.i018relevant_voters import relevant_voters_with_voterid, votes_after_date
 
 # Gets or creates a logger
 import logging
@@ -174,7 +174,11 @@ def generate_or_load_sparse_data(
         # Creates the pickle with the results
 
         df_dao_voters = (
-            pd.read_parquet(data_dir / dao_voter_mapping, columns=["dao", "voterid"])
+            pd.read_parquet(
+                data_dir / dao_voter_mapping, columns=["dao", "voterid", "timestamp"]
+            )
+            .query(f"timestamp > '{votes_after_date}'")
+            .drop("timestamp", axis=1)
             .drop_duplicates()
             .set_index("voterid")
             .sort_index()
@@ -184,13 +188,13 @@ def generate_or_load_sparse_data(
         )
 
         # Converts everything to parquet
-        df = convert_pickle_to_parquet(temporary_pickle, columnname="nshareddaos")
+        df = convert_pickle_to_parquet(sparse_outputfile, columnname="nshareddaos")
 
     # Pickle exists -> convert to parquet
     elif (data_dir / temporary_pickle).is_file() and not (
         data_dir / sparse_outputfile
     ).is_file():
-        df = convert_pickle_to_parquet(temporary_pickle, columnname="nshareddaos")
+        df = convert_pickle_to_parquet(sparse_outputfile, columnname="nshareddaos")
 
     # Parquet exists
     else:
@@ -205,7 +209,11 @@ def normalize_existing_parquet():
         orient="records"
     )
     df_dao_voters = (
-        (pd.read_parquet(data_dir / dao_voter_mapping, columns=["dao", "voterid"]))
+        pd.read_parquet(
+            data_dir / dao_voter_mapping, columns=["dao", "voterid", "timestamp"]
+        )
+        .query(f"timestamp > '{votes_after_date}'")
+        .drop("timestamp", axis=1)
         .groupby("voterid")
         .size()
         .to_dict()
@@ -219,7 +227,13 @@ def normalize_existing_parquet():
         nv1daos = df_dao_voters[v1]
         nv2daos = df_dao_voters[v2]
 
-        normalized_dict[(v1, v2)] = (2 * row["nshareddaos"]) / (nv1daos + nv2daos)
+        # Old version
+        # normalized_dict[(v1, v2)] = (2 * row["nshareddaos"]) / (nv1daos + nv2daos)
+
+        # Jaccard index
+        normalized_dict[(v1, v2)] = row["nshareddaos"] / (
+            nv1daos + nv2daos - row["nshareddaos"]
+        )
 
     ndf = pd.DataFrame.from_dict(
         normalized_dict, orient="index", columns=["nshareddaosnormalized"]
@@ -343,7 +357,7 @@ def main(list_of_voters: list = [], force: bool = False, normalize=False, **kwar
 if __name__ == "__main__":
     logger.setLevel(logging.INFO)
 
-    # Load list of voters from Chia-Yi
+    # Load list of voters
     list_of_voters = (
         pd.read_parquet(data_dir / relevant_voters_with_voterid).iloc[:, 0].to_list()
     )

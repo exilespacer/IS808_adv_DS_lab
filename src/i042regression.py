@@ -98,27 +98,33 @@ def run_specifications(specifications):
     except:
         offset = 0
 
+    specifications = load_specifications()
+
+    new_specifications = []
     for i, specification in enumerate(specifications):
-        logger.warn(f"{specification}")
-        r = run_regression(**specification)
 
         filename = f"regression_{str(i+offset).zfill(5)}.pickle"
         metadata = {**specification, "filename": filename}
+        new_specifications.append(metadata)
 
-        with open(regression_results_folder / filename, "wb") as f:
-            pickle.dump(r, f)
-        del r
+    with open(data_dir / specifications_file, "w") as f:
+        json.dump(new_specifications, f)
 
-        write_metadata = [metadata]
 
-        if (data_dir / regression_metadata_file).is_file():
-            with open(data_dir / regression_metadata_file, "r") as f:
-                existing_metadata = json.load(f)
+def run_specifications(specifications):
+    regression_results_folder.mkdir(parents=True, exist_ok=True)
 
-            write_metadata += existing_metadata
+    try:
+        offset = (
+            max([int(f.stem[-5:]) for f in regression_results_folder.glob("*.pickle")])
+            + 1
+        )
+    except:
+        offset = 0
 
-        with open(data_dir / regression_metadata_file, "w") as f:
-            json.dump(write_metadata, f)
+    for i, specification in enumerate(specifications):
+        logger.info(f"{specification}")
+        run_specification(specification)
 
 def load_regression_model(filename):
 

@@ -52,7 +52,7 @@ def get_prelabeled_nft_category(only_unique_category = True):
     )
     return df_category
 
-def get_openSea_nft(columns = ["requestedaddress", "slug", "owned_asset_count"], use_dask = False):
+def get_openSea_nft(columns = ["voter_id", "slug", "owned_asset_count"], use_dask = False):
     # Limit columns, otherwise I'm running out of RAM on the merge
     if use_dask:
         df_opensea = (
@@ -70,7 +70,7 @@ def create_merged_opensea_nft() -> None:
     df_opensea = (
         dd.read_parquet(data_dir / opensea_downloads)[
             [
-                "requestedaddress",
+                "voter_id",
                 "slug",
                 "owned_asset_count",
             ]  # Limit columns, otherwise I'm running out of RAM on the merge
@@ -86,9 +86,9 @@ def create_merged_opensea_nft() -> None:
         df_dao_voters,
         df_opensea,
         left_on="voter",
-        right_on="requestedaddress",
+        right_on="voter_id",
         how="inner",
-    ).drop("requestedaddress", axis=1)
+    ).drop("voter_id", axis=1)
 
     merged.to_parquet(
         data_dir / dao_voters_merged_with_opensea_folder,
