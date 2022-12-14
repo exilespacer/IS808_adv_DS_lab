@@ -4,7 +4,7 @@ from pathlib import Path
 # Duplicate and comment out this row
 # It should be the top level folder of the repository
 # Sven
-projectfolder = Path("C:\Users\nshafiks\OneDrive - uni-mannheim.de\Documents\GitHub\IS808_adv_DS_lab")
+projectfolder = Path("/project/IS808_adv_DS_lab")
 
 
 # Chia-Yi
